@@ -11,16 +11,23 @@ public partial class LoginWindow : Window
     public LoginWindow()
     {
         InitializeComponent();
+        DiagLog.Write("LoginWindow: constructed");
     }
 
     private void PasswordBox_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter) LoginButton_Click(sender, e);
+        if (e.Key == Key.Enter)
+        {
+            DiagLog.Write("LoginWindow: Enter pressed in password box");
+            LoginButton_Click(sender, e);
+        }
     }
 
     private void LoginButton_Click(object sender, RoutedEventArgs e)
     {
+        DiagLog.Write($"LoginWindow: Giriş Yap clicked, username='{UsernameBox.Text.Trim()}', password length={PasswordBox.Password.Length}");
         var user = _auth.TryLogin(App.Settings, UsernameBox.Text.Trim(), PasswordBox.Password);
+        DiagLog.Write("LoginWindow: TryLogin result = " + (user is null ? "null (rejected)" : $"OK ({user.Username})"));
         if (user is null)
         {
             ErrorText.Text = "Kullanıcı adı veya şifre hatalı.";
@@ -30,6 +37,7 @@ public partial class LoginWindow : Window
 
         App.CurrentUser = user;
         DialogResult = true;
+        DiagLog.Write("LoginWindow: DialogResult set to true, closing");
         Close();
     }
 }
