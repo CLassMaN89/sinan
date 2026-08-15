@@ -1294,8 +1294,8 @@
           </div>
           <div class="card-body" style="padding:0;">
             <div style="padding:13px 15px 0;">
-              <div class="viewer-box">
-                <div class="scan"></div>
+              <div class="viewer-box" id="detailViewerBox">
+                <div class="scan" id="detailViewerScan"></div>
                 <div class="ov-tl" id="detailOvTl"><b>DEMIR ARIFHAN AHMET</b><br/>BT Toraks · Seri 3/6<br/>512×512</div>
                 <div class="ov-br" id="detailOvBr">Görüntü 42/155</div>
               </div>
@@ -2629,11 +2629,25 @@
     save.onclick = function(){ saveEditDestRow(row, btn, save); };
     btn.parentElement.insertBefore(save, btn);
   }
-  function saveEditDestRow(row, editBtn, saveBtn){
+  async function saveEditDestRow(row, editBtn, saveBtn){
     var inputs = row.querySelectorAll('.dest-edit-input');
     var ae = inputs[0].value.trim() || row.dataset.ae;
     var host = inputs[1].value.trim() || row.dataset.host;
     var port = inputs[2].value.trim() || row.dataset.port;
+    var originalAe = row.dataset.ae;
+
+    if(hasNative){
+      var isSrc = !!row.closest('#pacsSrcList');
+      var action = isSrc ? 'updateSource' : 'updateDestination';
+      var res = await nativeCall(action, { originalAeTitle: originalAe, aeTitle: ae, host: host, port: parseInt(port, 10) });
+      if(!res || !res.ok){
+        alert((res && res.error) || 'Kayıt güncellenemedi.');
+        return;
+      }
+      await loadRealPacsConfig();
+      return;
+    }
+
     row.dataset.ae = ae; row.dataset.host = host; row.dataset.port = port;
     var main = row.querySelector('.dest-main');
     main.classList.remove('editing');
@@ -2953,7 +2967,7 @@
     sendNext(0);
   }
 
-  function buildSeriesThumbs(count, realSeries){
+  function buildSeriesThumbs(count, realSeries, studyUid){
     var strip = document.querySelector('#screen-detail .series-strip');
     if(!strip) return;
     var html = '';
@@ -2968,6 +2982,32 @@
     }
     strip.innerHTML = html;
     updateSeriesCount();
+    if(hasNative && studyUid) loadRealThumbnails(strip, studyUid);
+  }
+
+  /* replaces each series-thumb's decorative disc with a real PNG rendered from that
+     series' actual DICOM pixel data, once the bridge call resolves */
+  async function loadRealThumbnails(strip, studyUid){
+    var res = await nativeCall('getStudyThumbnails', { studyUid: studyUid });
+    if(!res || !res.ok || !res.thumbnails) return;
+    var firstUri = null;
+    Array.prototype.forEach.call(strip.querySelectorAll('.series-thumb'), function(thumb){
+      var uid = thumb.dataset.seriesUid;
+      var dataUri = uid && res.thumbnails[uid];
+      if(!dataUri) return;
+      if(!firstUri || thumb.classList.contains('on')) firstUri = firstUri || dataUri;
+      var disc = thumb.querySelector('.disc');
+      if(disc) disc.outerHTML = '<img class="disc" src="' + dataUri + '" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" />';
+    });
+    var viewerBox = document.getElementById('detailViewerBox');
+    var viewerScan = document.getElementById('detailViewerScan');
+    if(viewerBox && firstUri){
+      viewerBox.style.backgroundImage = 'url(' + firstUri + ')';
+      viewerBox.style.backgroundSize = 'contain';
+      viewerBox.style.backgroundRepeat = 'no-repeat';
+      viewerBox.style.backgroundPosition = 'center';
+      if(viewerScan) viewerScan.style.display = 'none';
+    }
   }
 
   function loadQueuePatient(i){
@@ -2999,7 +3039,11 @@
     var banner = document.getElementById('resultBanner');
     if(banner){ banner.className = 'result-banner'; banner.innerHTML = ''; }
 
-    buildSeriesThumbs(p.seriCount, p.series);
+    var prevViewerBox = document.getElementById('detailViewerBox');
+    var prevViewerScan = document.getElementById('detailViewerScan');
+    if(prevViewerBox){ prevViewerBox.style.backgroundImage = 'none'; }
+    if(prevViewerScan){ prevViewerScan.style.display = ''; }
+    buildSeriesThumbs(p.seriCount, p.series, p.studyUid);
     renderWorklist();
 
     var ovTl = document.getElementById('detailOvTl');

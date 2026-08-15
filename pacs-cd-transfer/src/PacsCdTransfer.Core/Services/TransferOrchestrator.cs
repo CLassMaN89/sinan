@@ -45,17 +45,21 @@ public sealed class TransferOrchestrator
         var outcomes = new List<TransferOutcome>();
         foreach (var study in studies)
         {
-            var allFiles = study.Series.SelectMany(s => s.FilePaths).ToList();
-            foreach (var batch in Chunk(allFiles, _maxBatchSeries))
+            // Batch by SERIES (as the "Aynı Anda Gönderilecek Maksimum Seri" setting name
+            // promises), not by individual image count — chunking by raw file count would cut
+            // a single series across multiple C-STORE bursts and mislabel the setting's unit.
+            foreach (var seriesBatch in Chunk(study.Series, _maxBatchSeries))
             {
                 ct.ThrowIfCancellationRequested();
-                outcomes.Add(await _network.SendFilesAsync(destination, batch, ct));
+                var batchFiles = seriesBatch.SelectMany(s => s.FilePaths).ToList();
+                if (batchFiles.Count == 0) continue;
+                outcomes.Add(await _network.SendFilesAsync(destination, batchFiles, ct));
             }
         }
         return outcomes;
     }
 
-    private static IEnumerable<List<string>> Chunk(List<string> items, int size)
+    private static IEnumerable<List<T>> Chunk<T>(List<T> items, int size)
     {
         for (var i = 0; i < items.Count; i += size)
             yield return items.GetRange(i, Math.Min(size, items.Count - i));

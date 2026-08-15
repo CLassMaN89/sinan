@@ -101,11 +101,23 @@ public sealed class CdImportService
 
         if (!studies.TryGetValue(studyUid, out var study))
         {
+            var patientId = ds.GetSingleValueOrDefault(DicomTag.PatientID, string.Empty);
+            var otherPatientId = ds.GetSingleValueOrDefault(DicomTag.OtherPatientIDsRETIRED, string.Empty);
+
+            // Many Turkish hospital systems put the TC Kimlik No directly in PatientID (or
+            // OtherPatientIDs) — if it's actually a valid TC number, pre-fill it so staff
+            // don't have to retype it; otherwise leave it blank for manual entry, since CDs
+            // often carry a hospital file number here instead (which is not a TC Kimlik No).
+            string? tcKimlikNo = null;
+            if (Validation.TcKimlikValidator.IsValid(patientId)) tcKimlikNo = patientId;
+            else if (Validation.TcKimlikValidator.IsValid(otherPatientId)) tcKimlikNo = otherPatientId;
+
             study = new DicomStudyRecord
             {
                 PatientName = ds.GetSingleValueOrDefault(DicomTag.PatientName, "Bilinmiyor"),
-                PatientId = ds.GetSingleValueOrDefault(DicomTag.PatientID, string.Empty),
+                PatientId = patientId,
                 AccessionNumber = ds.GetSingleValueOrDefault(DicomTag.AccessionNumber, string.Empty),
+                TcKimlikNo = tcKimlikNo,
                 StudyInstanceUid = studyUid,
                 StudyDate = ds.TryGetSingleValue<DateTime>(DicomTag.StudyDate, out var date) ? date : null,
                 Modality = ds.GetSingleValueOrDefault(DicomTag.Modality, string.Empty),

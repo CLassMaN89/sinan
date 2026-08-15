@@ -72,11 +72,14 @@ public sealed class WebBridge
                 "addDestination" => HandleAddDestination(request.Payload),
                 "removeDestination" => HandleRemoveDestination(request.Payload),
                 "setDefaultDestination" => HandleSetDefaultDestination(request.Payload),
+                "updateDestination" => HandleUpdateDestination(request.Payload),
                 "addSource" => HandleAddSource(request.Payload),
                 "removeSource" => HandleRemoveSource(request.Payload),
                 "setDefaultSource" => HandleSetDefaultSource(request.Payload),
+                "updateSource" => HandleUpdateSource(request.Payload),
                 "getLog" => HandleGetLog(),
                 "clearLog" => HandleClearLog(),
+                "getStudyThumbnails" => HandleGetStudyThumbnails(request.Payload),
                 _ => new { ok = false, error = "unknown action: " + request.Action }
             };
         }
@@ -220,6 +223,11 @@ public sealed class WebBridge
                 Series = study.Series.Where(s => seriesUids.Contains(s.SeriesInstanceUid)).ToList()
             };
 
+        if (filteredStudy.Series.Count == 0)
+            return new { ok = false, error = "Seçili serilere ait dosya bulunamadı — gönderim yapılmadı." };
+        if (filteredStudy.Series.All(s => s.FilePaths.Count == 0))
+            return new { ok = false, error = "Seçili serilerde diskte dosya bulunamadı — gönderim yapılmadı." };
+
         var network = new DicomNetworkService(App.Settings.LocalAeTitle);
         var orchestrator = new TransferOrchestrator(network, App.Settings.MaxBatchSeries);
         try
@@ -227,6 +235,16 @@ public sealed class WebBridge
             var outcomes = await orchestrator.SendStudiesAsync(destination, new[] { filteredStudy });
             var sent = outcomes.Sum(o => o.SentCount);
             var failed = outcomes.Sum(o => o.FailedCount);
+
+            // A 0-sent/0-failed outcome is not a success — it means nothing actually went out
+            // (e.g. every attempted C-STORE association silently produced no result). Treating
+            // it as ok:true was the root cause of "says sent, nothing arrives, no error shown".
+            if (sent == 0)
+            {
+                App.Log.Log(false, "PACS'e Gönderim", $"{study.PatientName} → {destination} — 0 görüntü gönderildi (bağlantı kurulamamış olabilir).");
+                return new { ok = false, error = "Hiçbir görüntü gönderilemedi — hedefe bağlanılamadı." };
+            }
+
             App.Log.Log(failed == 0, "PACS'e Gönderim", $"{study.PatientName} → {destination} — {sent} gönderildi, {failed} hata.");
 
             var bytes = filteredStudy.Series.SelectMany(s => s.FilePaths)
@@ -489,6 +507,35 @@ public sealed class WebBridge
         return new { ok = true };
     }
 
+    private static object HandleUpdateDestination(JsonElement payload) => UpdateNode(payload, App.Settings.SendDestinations);
+    private static object HandleUpdateSource(JsonElement payload) => UpdateNode(payload, App.Settings.QuerySources);
+
+    // Fixes a bug where the inline pencil-edit only updated the on-screen row: Test/Send
+    // would silently keep using the OLD saved host/port, making a "wrong port" test look
+    // successful because it was never actually testing the port shown on screen.
+    private static object UpdateNode(JsonElement payload, List<PacsNode> list)
+    {
+        var originalAe = payload.TryGetProperty("originalAeTitle", out var oa) ? oa.GetString() : null;
+        var node = list.FirstOrDefault(n => n.AeTitle == originalAe);
+        if (node is null) return new { ok = false, error = "Kayıt bulunamadı." };
+
+        var ae = payload.TryGetProperty("aeTitle", out var a) ? a.GetString() : null;
+        var host = payload.TryGetProperty("host", out var h) ? h.GetString() : null;
+        var port = 0;
+        var portOk = payload.TryGetProperty("port", out var p) && p.TryGetInt32(out port);
+        if (string.IsNullOrWhiteSpace(ae) || string.IsNullOrWhiteSpace(host) || !portOk)
+            return new { ok = false, error = "AE Title, Host ve Port gerekli." };
+
+        if (ae != originalAe && list.Any(n => n.AeTitle == ae))
+            return new { ok = false, error = "Bu AE Title zaten kullanılıyor." };
+
+        node.AeTitle = ae;
+        node.Host = host;
+        node.Port = port;
+        App.SaveSettings();
+        return new { ok = true };
+    }
+
     private static object HandleGetLog() => new
     {
         ok = true,
@@ -505,6 +552,49 @@ public sealed class WebBridge
     {
         App.Log.Clear();
         return new { ok = true };
+    }
+
+    // Real per-series thumbnails rendered from actual DICOM pixel data — replaces the
+    // mockup's decorative CSS discs. Looks in two places: the in-session scan cache (CD/folder
+    // import, has FilePaths already) and, for studies pulled via Sorgu/Getir, the on-disk
+    // storageRoot/{studyUid}/{seriesUid}/ folder that C-GET/C-MOVE receive into.
+    private object HandleGetStudyThumbnails(JsonElement payload)
+    {
+        var studyUid = payload.TryGetProperty("studyUid", out var su) ? su.GetString() : null;
+        if (string.IsNullOrEmpty(studyUid)) return new { ok = false, error = "studyUid gerekli." };
+
+        var storageRoot = Path.IsPathRooted(App.Settings.TempStorageFolder)
+            ? App.Settings.TempStorageFolder
+            : Path.Combine(AppContext.BaseDirectory, App.Settings.TempStorageFolder);
+
+        IEnumerable<(string SeriesUid, string? FirstFile)> seriesFiles;
+        if (_scannedStudies.TryGetValue(studyUid, out var scanned))
+        {
+            seriesFiles = scanned.Series.Select(s => (s.SeriesInstanceUid, s.FilePaths.FirstOrDefault()));
+        }
+        else if (_foundStudies.TryGetValue(studyUid, out var found))
+        {
+            seriesFiles = found.Series.Select(s =>
+            {
+                var dir = Path.Combine(storageRoot, studyUid, s.SeriesInstanceUid);
+                var first = Directory.Exists(dir) ? Directory.EnumerateFiles(dir, "*.dcm").FirstOrDefault() : null;
+                return (s.SeriesInstanceUid, first);
+            });
+        }
+        else
+        {
+            return new { ok = false, error = "Tetkik bulunamadı." };
+        }
+
+        var thumbnails = new Dictionary<string, string>();
+        foreach (var (seriesUid, firstFile) in seriesFiles)
+        {
+            if (firstFile is null) continue;
+            var dataUri = DicomThumbnailService.RenderThumbnailDataUri(firstFile);
+            if (dataUri is not null) thumbnails[seriesUid] = dataUri;
+        }
+
+        return new { ok = true, thumbnails };
     }
 
     private static PacsNode? ReadNode(JsonElement payload)

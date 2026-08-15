@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="fo-dicom" Version="5.1.2" />
+    <PackageReference Include="fo-dicom.Imaging.ImageSharp" Version="5.1.2" />
   </ItemGroup>
 
 </Project>

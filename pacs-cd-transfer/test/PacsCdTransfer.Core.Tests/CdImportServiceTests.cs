@@ -56,6 +56,59 @@ public class CdImportServiceTests
     }
 
     [Fact]
+    public async Task ScanFilesAsync_PrefillsTcKimlikNo_WhenPatientIdIsValidTcNumber()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "cd-import-test-" + Guid.NewGuid());
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var dataset = new DicomDataset
+            {
+                { DicomTag.SOPClassUID, DicomUID.SecondaryCaptureImageStorage },
+                { DicomTag.SOPInstanceUID, DicomUID.Generate().UID },
+                { DicomTag.StudyInstanceUID, DicomUID.Generate().UID },
+                { DicomTag.SeriesInstanceUID, DicomUID.Generate().UID },
+                { DicomTag.PatientName, "TEST^PATIENT" },
+                { DicomTag.PatientID, "10000000146" }, // valid TC Kimlik No checksum
+                { DicomTag.Modality, "CT" }
+            };
+            new DicomFile(dataset).Save(Path.Combine(dir, "a.dcm"));
+
+            var service = new CdImportService();
+            var studies = await service.ReadDiscAsync(dir);
+
+            var study = Assert.Single(studies);
+            Assert.Equal("10000000146", study.TcKimlikNo);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Fact]
+    public async Task ScanFilesAsync_LeavesTcKimlikNoEmpty_WhenPatientIdIsNotATcNumber()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "cd-import-test-" + Guid.NewGuid());
+        Directory.CreateDirectory(dir);
+        try
+        {
+            // A typical hospital file number — not a valid TC Kimlik checksum.
+            WriteTestFile(dir, DicomUID.Generate().UID, DicomUID.Generate().UID, DicomUID.Generate().UID, "A^B", "MR");
+
+            var service = new CdImportService();
+            var studies = await service.ReadDiscAsync(dir);
+
+            var study = Assert.Single(studies);
+            Assert.Null(study.TcKimlikNo);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Fact]
     public async Task ScanFilesAsync_IgnoresNonDicomFiles()
     {
         var dir = Path.Combine(Path.GetTempPath(), "cd-import-test-" + Guid.NewGuid());
