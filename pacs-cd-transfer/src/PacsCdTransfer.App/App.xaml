@@ -1,6 +1,7 @@
 <Application x:Class="PacsCdTransfer.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <SolidColorBrush x:Key="AccentBrush" Color="#2F86D6"/>
         <SolidColorBrush x:Key="AccentBgBrush" Color="#E9F3FC"/>

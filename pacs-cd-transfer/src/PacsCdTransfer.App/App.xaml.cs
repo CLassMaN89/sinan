@@ -92,6 +92,14 @@ public partial class App : Application
         DiagLog.Write("RunStartup: constructing MainWindow");
         var main = new Views.MainWindow();
         MainWindow = main;
+        // ShutdownMode is OnExplicitShutdown (see App.xaml) so that closing the login
+        // window — the only window open at that point — doesn't tear the app down before
+        // MainWindow ever gets shown. We own ending the app now: do it when MainWindow closes.
+        main.Closed += (_, _) =>
+        {
+            DiagLog.Write("MainWindow closed — shutting down");
+            Shutdown();
+        };
         DiagLog.Write("RunStartup: showing MainWindow");
         main.Show();
         DiagLog.Write("RunStartup: MainWindow.Show() returned");

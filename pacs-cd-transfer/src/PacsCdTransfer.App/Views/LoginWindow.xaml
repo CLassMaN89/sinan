@@ -1,7 +1,7 @@
 <Window x:Class="PacsCdTransfer.App.Views.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="PACS CD Transfer — Giriş" Height="420" Width="380"
+        Title="PACS CD Transfer — Giriş" Height="460" Width="380"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
         Background="{StaticResource BgBrush}">
     <Grid Margin="30">
@@ -19,6 +19,10 @@
                        TextWrapping="Wrap" Visibility="Collapsed"/>
 
             <Button Content="Giriş Yap" Style="{StaticResource PrimaryButton}" Click="LoginButton_Click" Height="38"/>
+
+            <!-- Plain, unstyled button (no custom ControlTemplate) — also rules out the
+                 styled-button hit-testing as a cause if this one doesn't react either. -->
+            <Button Content="Tanılama Günlüğünü Göster" Click="ShowDiagLog_Click" Margin="0,14,0,0" Height="28"/>
         </StackPanel>
     </Grid>
 </Window>

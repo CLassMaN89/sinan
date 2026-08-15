@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using PacsCdTransfer.Core.Services;
@@ -39,5 +40,15 @@ public partial class LoginWindow : Window
         DialogResult = true;
         DiagLog.Write("LoginWindow: DialogResult set to true, closing");
         Close();
+    }
+
+    private void ShowDiagLog_Click(object sender, RoutedEventArgs e)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "startup-log.txt");
+        var content = File.Exists(path)
+            ? File.ReadAllText(path)
+            : "(startup-log.txt henüz oluşmadı — bu, uygulamanın en erken adımlarda bir yerde takıldığı anlamına gelebilir.)";
+
+        MessageBox.Show(content, "Tanılama Günlüğü", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 }
