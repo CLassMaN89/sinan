@@ -9,6 +9,14 @@ public partial class MainWindow : Window
         DiagLog.Write("MainWindow: constructor start");
         InitializeComponent();
         DiagLog.Write("MainWindow: InitializeComponent done");
+
+        // Fixed, non-resizable window (ResizeMode=CanMinimize in XAML) — but the fixed size
+        // itself scales down proportionally on smaller screens so it never opens larger than
+        // the available work area (e.g. a 1366x768 laptop) instead of getting clipped.
+        var workArea = SystemParameters.WorkArea;
+        Width = Math.Min(Width, workArea.Width * 0.92);
+        Height = Math.Min(Height, workArea.Height * 0.92);
+
         AetLabel.Text = $"AET: {App.Settings.LocalAeTitle}  ·  Port: {App.Settings.LocalPort}";
         UserLabel.Text = App.CurrentUser is { } u ? $"{u.Username}{(u.IsAdmin ? " (Yönetici)" : string.Empty)}" : string.Empty;
         DiagLog.Write("MainWindow: constructor end");

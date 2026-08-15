@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:PacsCdTransfer.App.Views"
         Title="PACS CD Transfer" Height="760" Width="1180" MinHeight="600" MinWidth="900"
-        WindowStartupLocation="CenterScreen" WindowState="Maximized" ResizeMode="CanMinimize"
+        WindowStartupLocation="CenterScreen" ResizeMode="CanMinimize"
         Background="{StaticResource BgBrush}">
     <DockPanel>
         <Border DockPanel.Dock="Top" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush2}" BorderThickness="0,0,0,1" Padding="16,10">
