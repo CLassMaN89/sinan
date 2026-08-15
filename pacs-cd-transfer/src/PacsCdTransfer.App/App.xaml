@@ -1,0 +1,65 @@
+<Application x:Class="PacsCdTransfer.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <SolidColorBrush x:Key="AccentBrush" Color="#2F86D6"/>
+        <SolidColorBrush x:Key="AccentBgBrush" Color="#E9F3FC"/>
+        <SolidColorBrush x:Key="BgBrush" Color="#F4F7FA"/>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="BorderBrush2" Color="#D8E1E8"/>
+        <SolidColorBrush x:Key="TextHiBrush" Color="#1B2733"/>
+        <SolidColorBrush x:Key="TextLoBrush" Color="#66788A"/>
+        <SolidColorBrush x:Key="OkBrush" Color="#1E9E5A"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="#D6425A"/>
+
+        <Style TargetType="Button" x:Key="PrimaryButton">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Button" x:Key="OutlineButton">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextHiBrush}"/>
+            <Setter Property="Padding" Value="12,7"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush2}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="8,7"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush2}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+        </Style>
+
+        <Style TargetType="PasswordBox">
+            <Setter Property="Padding" Value="8,7"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush2}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+        </Style>
+    </Application.Resources>
+</Application>

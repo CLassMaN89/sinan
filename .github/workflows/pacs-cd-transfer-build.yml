@@ -1,0 +1,77 @@
+name: PACS CD Transfer — build, test, publish
+
+on:
+  push:
+    branches: [ main, "claude/**" ]
+    paths:
+      - 'pacs-cd-transfer/**'
+      - '.github/workflows/pacs-cd-transfer-build.yml'
+  pull_request:
+    paths:
+      - 'pacs-cd-transfer/**'
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    name: Build & test (cross-platform Core)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pacs-cd-transfer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore Core + Tests
+        run: dotnet restore src/PacsCdTransfer.Core/PacsCdTransfer.Core.csproj test/PacsCdTransfer.Core.Tests/PacsCdTransfer.Core.Tests.csproj
+      - name: Build Core
+        run: dotnet build src/PacsCdTransfer.Core/PacsCdTransfer.Core.csproj --no-restore -c Release
+      - name: Run tests (real DICOM network round-trips against an in-process SCP)
+        run: dotnet test test/PacsCdTransfer.Core.Tests/PacsCdTransfer.Core.Tests.csproj --no-restore -c Release --logger "trx;LogFileName=test-results.trx"
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: pacs-cd-transfer/test/PacsCdTransfer.Core.Tests/TestResults/**/*.trx
+
+  publish-windows:
+    name: Publish portable win-x64 exe
+    runs-on: windows-latest
+    needs: test
+    defaults:
+      run:
+        working-directory: pacs-cd-transfer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore full solution (WPF app requires Windows)
+        run: dotnet restore PacsCdTransfer.sln
+
+      - name: Build solution
+        run: dotnet build PacsCdTransfer.sln -c Release --no-restore
+
+      # Self-contained + single-file => no .NET runtime install and no installer needed on
+      # the target machine. This is both "the exe" and "the portable build" the user asked
+      # for — a self-contained single-file publish already runs standalone from any folder
+      # (USB stick, network share, Masaüstü) with no setup step.
+      - name: Publish self-contained single-file portable exe
+        run: >
+          dotnet publish src/PacsCdTransfer.App/PacsCdTransfer.App.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -o publish/win-x64
+
+      - name: Upload portable exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: PacsCdTransfer-portable-win-x64
+          path: pacs-cd-transfer/publish/win-x64/PacsCdTransfer.exe

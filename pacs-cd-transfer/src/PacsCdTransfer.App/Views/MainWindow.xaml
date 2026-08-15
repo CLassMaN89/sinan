@@ -1,0 +1,30 @@
+<Window x:Class="PacsCdTransfer.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:PacsCdTransfer.App.Views"
+        Title="PACS CD Transfer" Height="760" Width="1180" MinHeight="600" MinWidth="900"
+        WindowStartupLocation="CenterScreen" Background="{StaticResource BgBrush}">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush2}" BorderThickness="0,0,0,1" Padding="16,10">
+            <Grid>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="PACS CD Transfer" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="AetLabel" Margin="16,0,0,0" FontSize="11" Foreground="{StaticResource TextLoBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBlock x:Name="UserLabel" VerticalAlignment="Center" Margin="0,0,14,0" Foreground="{StaticResource TextLoBrush}" FontSize="12"/>
+                    <Button Content="Ayarlar" Style="{StaticResource OutlineButton}" Click="SettingsButton_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <TabControl Margin="16">
+            <TabItem Header="CD Transfer">
+                <local:CdTransferView x:Name="CdTransferTab"/>
+            </TabItem>
+            <TabItem Header="PACS Sorgu / Getir">
+                <local:QueryView x:Name="QueryTab"/>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>
