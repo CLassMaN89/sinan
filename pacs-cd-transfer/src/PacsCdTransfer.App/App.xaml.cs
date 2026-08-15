@@ -17,6 +17,37 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Surface any crash as a message box instead of the process silently vanishing —
+        // WPF's default unhandled-exception behavior gives no visible feedback at all.
+        DispatcherUnhandledException += (_, args) =>
+        {
+            MessageBox.Show(
+                $"Beklenmeyen bir hata oluştu:\n\n{args.Exception}",
+                "PACS CD Transfer — Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            args.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            MessageBox.Show(
+                $"Beklenmeyen bir hata oluştu:\n\n{args.ExceptionObject}",
+                "PACS CD Transfer — Kritik Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+        };
+
+        try
+        {
+            RunStartup();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Uygulama başlatılırken hata oluştu:\n\n{ex}",
+                "PACS CD Transfer — Başlatma Hatası", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown();
+        }
+    }
+
+    private void RunStartup()
+    {
         SettingsStore = new AppSettingsStore();
         Settings = SettingsStore.Load();
 
