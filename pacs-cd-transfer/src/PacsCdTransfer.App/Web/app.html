@@ -1029,9 +1029,9 @@
         </div>
         <div class="aet-badge" title="AET veya IP'ye çift tıklayarak kopyalayın">
           <svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="6.5" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6.5" rx="1.5"/><circle cx="7" cy="7.3" r="0.6" fill="currentColor" stroke="none"/><circle cx="7" cy="16.8" r="0.6" fill="currentColor" stroke="none"/></svg>
-          <span>AET: <b ondblclick="copyText(this,event)">SK_CD_IMPORT</b></span>
+          <span>AET: <b class="js-aet-value" ondblclick="copyText(this,event)">SK_CD_IMPORT</b></span>
           <span class="sep">·</span>
-          <span class="ipwrap">IP: <b ondblclick="copyText(this,event)">10.20.4.15</b></span>
+          <span class="ipwrap">IP: <b class="js-ip-value" ondblclick="copyText(this,event)">10.20.4.15</b></span>
         </div>
         <div class="theme-seg" onclick="toggleTheme()" title="Temayı değiştir">
           <svg class="ic ic-fixed l" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.3"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>
@@ -1115,55 +1115,36 @@
         </div>
       </div>
 
-      <div class="section-title" style="margin-top:22px;"><h3>Son Aktarılanlar</h3><span>Son 1 hafta</span></div>
+      <div class="section-title" style="margin-top:22px;"><h3>Son Aktarılanlar</h3><span>Bu oturum</span></div>
 
       <div class="kpi-grid">
         <div class="kpi-card kpi-ok">
           <div class="kpi-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v13M7 8.5L12 3l5 5.5"/><path d="M4 19.5h16"/></svg></div>
           <div class="kpi-label">Bugün Aktarılan</div>
-          <div class="kpi-value">24</div>
+          <div class="kpi-value" id="kpiSentToday">0</div>
+        </div>
+        <div class="kpi-card kpi-warn">
+          <div class="kpi-ic"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg></div>
+          <div class="kpi-label">Bugün Hata</div>
+          <div class="kpi-value" id="kpiFailedToday">0</div>
         </div>
         <div class="kpi-card kpi-accent">
           <div class="kpi-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11A8 8 0 1 0 18.6 16"/><path d="M20 5v6h-6"/></svg></div>
-          <div class="kpi-label">Aktif İşlem</div>
-          <div class="kpi-value">3</div>
-        </div>
-        <div class="kpi-card kpi-warn">
-          <div class="kpi-ic"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
-          <div class="kpi-label">Bekleyen</div>
-          <div class="kpi-value">7</div>
+          <div class="kpi-label">Toplam Gönderim</div>
+          <div class="kpi-value" id="kpiTotalSends">0</div>
         </div>
         <div class="kpi-card kpi-neutral">
           <div class="kpi-ic"><svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.5"/><path d="M4.5 5.5V18a7.5 2.5 0 0 0 15 0V5.5"/><path d="M4.5 11.75a7.5 2.5 0 0 0 15 0"/></svg></div>
           <div class="kpi-label">Toplam Veri</div>
-          <div class="kpi-value">2.45 TB</div>
+          <div class="kpi-value" id="kpiTotalData">0 MB</div>
         </div>
       </div>
 
       <div class="ptable-wrap" style="margin-bottom:4px;">
         <table class="ptable">
           <thead><tr><th>Hasta</th><th>Protokol</th><th>İnceleme</th><th>Tarih</th><th>Durum</th></tr></thead>
-          <tbody>
-            <tr>
-              <td class="pname"><div class="row"><div class="av">SR</div>Samıkıran Ramazan</div></td>
-              <td>BT Toraks</td><td>BT Toraks Kontrastlı</td><td>08.08.2026 09:14</td>
-              <td><span class="dotpill ok">Aktarıldı</span></td>
-            </tr>
-            <tr>
-              <td class="pname"><div class="row"><div class="av">MY</div>Mehmet Yılmaz</div></td>
-              <td>BT Abdomen</td><td>BT Abdomen Kontrastlı</td><td>08.08.2026 08:40</td>
-              <td><span class="dotpill accent">Aktarılıyor</span></td>
-            </tr>
-            <tr>
-              <td class="pname"><div class="row"><div class="av">EK</div>Elif Kaya</div></td>
-              <td>MR Lomber</td><td>MR Lomber Omurga</td><td>07.08.2026 16:40</td>
-              <td><span class="dotpill warn">Bekleyen</span></td>
-            </tr>
-            <tr>
-              <td class="pname"><div class="row"><div class="av">AD</div>Ayşe Demir</div></td>
-              <td>MR Diz</td><td>MR Diz Sol</td><td>07.08.2026 15:55</td>
-              <td><span class="dotpill ok">Aktarıldı</span></td>
-            </tr>
+          <tbody id="recentTransfersBody">
+            <tr><td colspan="5" style="text-align:center; color:var(--text-lo); padding:16px;">Bu oturumda henüz gönderim yapılmadı.</td></tr>
           </tbody>
         </table>
       </div>
@@ -1188,9 +1169,9 @@
         </div>
         <div class="aet-badge" title="AET veya IP'ye çift tıklayarak kopyalayın">
           <svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="6.5" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6.5" rx="1.5"/><circle cx="7" cy="7.3" r="0.6" fill="currentColor" stroke="none"/><circle cx="7" cy="16.8" r="0.6" fill="currentColor" stroke="none"/></svg>
-          <span>AET: <b ondblclick="copyText(this,event)">SK_CD_IMPORT</b></span>
+          <span>AET: <b class="js-aet-value" ondblclick="copyText(this,event)">SK_CD_IMPORT</b></span>
           <span class="sep">·</span>
-          <span class="ipwrap">IP: <b ondblclick="copyText(this,event)">10.20.4.15</b></span>
+          <span class="ipwrap">IP: <b class="js-ip-value" ondblclick="copyText(this,event)">10.20.4.15</b></span>
         </div>
         <div class="theme-seg" onclick="toggleTheme()" title="Temayı değiştir">
           <svg class="ic ic-fixed l" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.3"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>
@@ -1288,9 +1269,9 @@
         </div>
         <div class="aet-badge" title="AET veya IP'ye çift tıklayarak kopyalayın">
           <svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="6.5" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6.5" rx="1.5"/><circle cx="7" cy="7.3" r="0.6" fill="currentColor" stroke="none"/><circle cx="7" cy="16.8" r="0.6" fill="currentColor" stroke="none"/></svg>
-          <span>AET: <b ondblclick="copyText(this,event)">SK_CD_IMPORT</b></span>
+          <span>AET: <b class="js-aet-value" ondblclick="copyText(this,event)">SK_CD_IMPORT</b></span>
           <span class="sep">·</span>
-          <span class="ipwrap">IP: <b ondblclick="copyText(this,event)">10.20.4.15</b></span>
+          <span class="ipwrap">IP: <b class="js-ip-value" ondblclick="copyText(this,event)">10.20.4.15</b></span>
         </div>
         <div class="theme-seg" onclick="toggleTheme()" title="Temayı değiştir">
           <svg class="ic ic-fixed l" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.3"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>
@@ -1456,9 +1437,9 @@
         </div>
         <div class="aet-badge" title="AET veya IP'ye çift tıklayarak kopyalayın">
           <svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="6.5" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6.5" rx="1.5"/><circle cx="7" cy="7.3" r="0.6" fill="currentColor" stroke="none"/><circle cx="7" cy="16.8" r="0.6" fill="currentColor" stroke="none"/></svg>
-          <span>AET: <b ondblclick="copyText(this,event)">SK_CD_IMPORT</b></span>
+          <span>AET: <b class="js-aet-value" ondblclick="copyText(this,event)">SK_CD_IMPORT</b></span>
           <span class="sep">·</span>
-          <span class="ipwrap">IP: <b ondblclick="copyText(this,event)">10.20.4.15</b></span>
+          <span class="ipwrap">IP: <b class="js-ip-value" ondblclick="copyText(this,event)">10.20.4.15</b></span>
         </div>
         <div class="theme-seg" onclick="toggleTheme()" title="Temayı değiştir">
           <svg class="ic ic-fixed l" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.3"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>
@@ -1677,11 +1658,11 @@
         <h4>Dicom Bilgileri</h4>
         <div class="sd">Bu istasyonun DICOM ağ kimliği (AET/Port).</div>
         <div class="form-row">
-          <div class="fgroup"><label>Yerel AE Title</label><input type="text" value="SK_CD_IMPORT" /></div>
-          <div class="fgroup"><label>Yerel Port</label><input type="text" value="11112" /></div>
+          <div class="fgroup"><label>Yerel AE Title</label><input type="text" id="settingsLocalAe" value="SK_CD_IMPORT" /></div>
+          <div class="fgroup"><label>Yerel Port</label><input type="text" id="settingsLocalPort" value="11112" /></div>
         </div>
         <div class="form-row">
-          <div class="fgroup" style="grid-column:1/-1;"><label>Depolama Klasörü (geçici)</label><input type="text" value="D:\PacsCD\Temp" /></div>
+          <div class="fgroup" style="grid-column:1/-1;"><label>Depolama Klasörü (geçici)</label><input type="text" id="settingsStorageFolder" value="PacsCD_Temp" /></div>
         </div>
         <div class="toggle-row">
           <div><div class="tt">Geçici Dosyaları Otomatik Temizle</div><div class="ts">Depolama Klasörü'ndeki CD kopyaları 7 gün sonra otomatik silinir</div></div>
@@ -1959,6 +1940,7 @@
     document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('on'); });
     document.getElementById('screen-'+id).classList.add('on');
     document.querySelectorAll('.review-tabs button').forEach(function(b){ b.classList.toggle('on', b.dataset.screen === id); });
+    if(id === 'home' && typeof refreshRecentTransfers === 'function') refreshRecentTransfers();
     var rail = document.getElementById('appRail');
     if(id === 'login'){
       rail.classList.add('hidden');
@@ -1973,15 +1955,57 @@
   document.querySelectorAll('.review-tabs button').forEach(function(b){
     b.addEventListener('click', function(){ showScreen(b.dataset.screen); });
   });
-  function openSettings(){ document.getElementById('settingsVeil').classList.add('on'); }
+  async function loadDicomSettingsPane(){
+    if(!hasNative) return;
+    var res = await nativeCall('getAppSettings');
+    if(!res || !res.ok) return;
+    var ae = document.getElementById('settingsLocalAe');
+    var port = document.getElementById('settingsLocalPort');
+    var storage = document.getElementById('settingsStorageFolder');
+    var maxBatch = document.getElementById('maxBatchSeries');
+    if(ae) ae.value = res.localAeTitle;
+    if(port) port.value = res.localPort;
+    if(storage) storage.value = res.storageFolder;
+    if(maxBatch) maxBatch.value = res.maxBatchSeries;
+  }
+  async function refreshTopBarInfo(){
+    if(!hasNative) return;
+    var res = await nativeCall('getAppSettings');
+    var ip = await nativeCall('getLocalIp');
+    if(res && res.ok){
+      document.querySelectorAll('.js-aet-value').forEach(function(el){ el.textContent = res.localAeTitle; });
+    }
+    if(ip && ip.ok){
+      document.querySelectorAll('.js-ip-value').forEach(function(el){ el.textContent = ip.ip; });
+    }
+  }
+  function openSettings(){
+    document.getElementById('settingsVeil').classList.add('on');
+    loadDicomSettingsPane();
+    refreshUserList();
+    refreshLogList();
+  }
   function closeSettings(){
     document.getElementById('settingsVeil').classList.remove('on');
     var msg = document.getElementById('settingsSavedMsg');
     if(msg) msg.classList.remove('show');
   }
   var settingsSaveTimer = null;
-  function saveSettings(){
+  async function saveSettings(){
     var msg = document.getElementById('settingsSavedMsg');
+    if(hasNative){
+      var ae = document.getElementById('settingsLocalAe');
+      var port = document.getElementById('settingsLocalPort');
+      var storage = document.getElementById('settingsStorageFolder');
+      var maxBatch = document.getElementById('maxBatchSeries');
+      await nativeCall('saveAppSettings', {
+        localAeTitle: ae ? ae.value.trim() : undefined,
+        localPort: port ? parseInt(port.value, 10) : undefined,
+        storageFolder: storage ? storage.value.trim() : undefined,
+        maxBatchSeries: maxBatch ? parseInt(maxBatch.value, 10) : undefined
+      });
+      await refreshTopBarInfo();
+    }
     if(!msg) return;
     msg.innerHTML = '<svg class="ic" viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg>Kaydedildi';
     msg.classList.add('show');
@@ -1993,6 +2017,8 @@
       document.querySelectorAll('.settings-nav button').forEach(function(x){ x.classList.remove('on'); });
       b.classList.add('on');
       ['dicom','pacs','user','perm','log'].forEach(function(p){ document.getElementById('pane-'+p).style.display = (p===b.dataset.pane)?'block':'none'; });
+      if(b.dataset.pane === 'perm') refreshUserList();
+      if(b.dataset.pane === 'log') refreshLogList();
     });
   });
   document.addEventListener('click', function(e){
@@ -2460,7 +2486,31 @@
       }
     }, 700);
   }
-  function clearLog(){
+  async function refreshLogList(){
+    if(!hasNative) return;
+    var res = await nativeCall('getLog');
+    if(!res || !res.ok) return;
+    var list = document.getElementById('logList');
+    if(!list) return;
+    if(!res.entries.length){
+      list.innerHTML = '<div class="sd" style="padding:8px 0;">Henüz kayıtlı bir bağlantı olayı yok.</div>';
+      return;
+    }
+    list.innerHTML = res.entries.map(function(e){
+      return '<div class="log-row ' + (e.success ? 'ok' : 'err') + '">' +
+        '<div class="log-icon">' + (e.success
+          ? '<svg class="ic" viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg>'
+          : '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>') + '</div>' +
+        '<div class="log-body"><div class="log-top"><b>' + e.title + '</b><span class="log-time">' + e.time + '</span></div>' +
+        '<div class="log-msg">' + e.message + '</div></div></div>';
+    }).join('');
+  }
+  async function clearLog(){
+    if(hasNative){
+      await nativeCall('clearLog');
+      await refreshLogList();
+      return;
+    }
     var list = document.getElementById('logList');
     if(list) list.innerHTML = '';
   }
@@ -2468,19 +2518,42 @@
   /* ---- users & permissions — only the admin account can add/remove users ---- */
   /* the Kullanıcı Ekle form doubles as the edit form: Düzenle loads a row into it, submit either adds or updates */
   var editingUserRow = null;
-  function submitUserForm(){
+  function userRowHtml(u){
+    var isAdmin = !!u.isAdmin;
+    var tr = document.createElement('tr');
+    tr.dataset.username = u.username;
+    tr.innerHTML =
+      '<td class="pname">' + u.username + '</td>' +
+      '<td><div class="switch' + (u.canTransferCd ? ' on' : '') + '"' + (isAdmin ? ' style="opacity:.5; pointer-events:none;"' : '') + '></div></td>' +
+      '<td><div class="switch' + (u.canQueryRetrieve ? ' on' : '') + '"' + (isAdmin ? ' style="opacity:.5; pointer-events:none;"' : '') + '></div></td>' +
+      (isAdmin
+        ? '<td><span class="pill pill-muted">Yönetici — sabit</span></td><td></td>'
+        : '<td></td><td><div class="dest-actions" style="justify-content:flex-end;">' +
+          '<button class="dest-del-btn" onclick="removeUserRow(this)" title="Kullanıcıyı sil"><svg class="ic" viewBox="0 0 24 24"><path d="M5 7h14M9 7V4.5h6V7M7 7l1 13h8l1-13"/></svg></button>' +
+          '</div></td>');
+    return tr;
+  }
+  async function refreshUserList(){
+    if(!hasNative) return;
+    var res = await nativeCall('getUsers');
+    if(!res || !res.ok) return;
+    var list = document.getElementById('userList');
+    list.innerHTML = '';
+    res.users.forEach(function(u){ list.appendChild(userRowHtml(u)); });
+  }
+  async function submitUserForm(){
     var input = document.getElementById('newUserName');
     var passInput = document.getElementById('newUserPassword');
     var name = input.value.trim();
     var pass = passInput.value.trim();
     if(!name || !pass) return;
 
-    if(editingUserRow){
-      editingUserRow.dataset.username = name;
-      editingUserRow.dataset.password = pass;
-      editingUserRow.querySelector('.pname').textContent = name;
-      cancelEditUserRow();
-      if(typeof saveSettings === 'function') saveSettings();
+    if(hasNative){
+      var res = await nativeCall('addUser', { username: name, password: pass, canTransferCd: true, canQueryRetrieve: true });
+      if(!res || !res.ok){ alert((res && res.error) || 'Kullanıcı eklenemedi.'); return; }
+      input.value = '';
+      passInput.value = '';
+      await refreshUserList();
       return;
     }
 
@@ -2504,8 +2577,13 @@
     passInput.value = '';
     if(typeof saveSettings === 'function') saveSettings();
   }
-  function removeUserRow(btn){
+  async function removeUserRow(btn){
     var row = btn.closest('tr');
+    if(hasNative){
+      await nativeCall('removeUser', { username: row.dataset.username });
+      await refreshUserList();
+      return;
+    }
     if(row === editingUserRow) cancelEditUserRow();
     row.remove();
   }
@@ -2582,7 +2660,13 @@
       select.appendChild(opt);
     });
   }
-  function setDefaultPacs(btn){
+  async function setDefaultPacs(btn){
+    if(hasNative){
+      var row = btn.closest('.dest-row');
+      await nativeCall('setDefaultDestination', { aeTitle: row.dataset.ae });
+      await loadRealPacsConfig();
+      return;
+    }
     var list = document.getElementById('pacsDestList');
     Array.prototype.forEach.call(list.querySelectorAll('.dest-row'), function(row){
       var pill = row.querySelector('.dest-actions > .pill');
@@ -2591,11 +2675,20 @@
     btn.outerHTML = '<span class="pill pill-ok">Varsayılan</span>';
     refreshPacsDestOptions();
   }
-  function addPacsDest(){
+  async function addPacsDest(){
     var ae = document.getElementById('newPacsAe').value.trim();
     var host = document.getElementById('newPacsHost').value.trim();
     var port = document.getElementById('newPacsPort').value.trim() || '104';
     if(!ae || !host) return;
+    if(hasNative){
+      var res = await nativeCall('addDestination', { aeTitle: ae, host: host, port: parseInt(port, 10) });
+      if(!res || !res.ok){ alert((res && res.error) || 'Hedef eklenemedi.'); return; }
+      document.getElementById('newPacsAe').value = '';
+      document.getElementById('newPacsHost').value = '';
+      document.getElementById('newPacsPort').value = '';
+      await loadRealPacsConfig();
+      return;
+    }
     var list = document.getElementById('pacsDestList');
     var row = document.createElement('div');
     row.className = 'dest-row';
@@ -2615,10 +2708,15 @@
     document.getElementById('newPacsPort').value = '';
     refreshPacsDestOptions();
   }
-  function removeDestRow(btn){
+  async function removeDestRow(btn){
     var list = document.getElementById('pacsDestList');
     if(list.querySelectorAll('.dest-row').length <= 1) return;
     var row = btn.closest('.dest-row');
+    if(hasNative){
+      await nativeCall('removeDestination', { aeTitle: row.dataset.ae });
+      await loadRealPacsConfig();
+      return;
+    }
     var wasDefault = !!row.querySelector('.dest-actions > .pill');
     row.remove();
     if(wasDefault){
@@ -2649,7 +2747,13 @@
       select.appendChild(opt);
     });
   }
-  function setDefaultSrc(btn){
+  async function setDefaultSrc(btn){
+    if(hasNative){
+      var row = btn.closest('.dest-row');
+      await nativeCall('setDefaultSource', { aeTitle: row.dataset.ae });
+      await loadRealPacsConfig();
+      return;
+    }
     var list = document.getElementById('pacsSrcList');
     Array.prototype.forEach.call(list.querySelectorAll('.dest-row'), function(row){
       var pill = row.querySelector('.dest-actions > .pill');
@@ -2658,11 +2762,20 @@
     btn.outerHTML = '<span class="pill pill-ok">Varsayılan</span>';
     refreshPacsSrcOptions();
   }
-  function addPacsSrc(){
+  async function addPacsSrc(){
     var ae = document.getElementById('newSrcAe').value.trim();
     var host = document.getElementById('newSrcHost').value.trim();
     var port = document.getElementById('newSrcPort').value.trim() || '104';
     if(!ae || !host) return;
+    if(hasNative){
+      var res = await nativeCall('addSource', { aeTitle: ae, host: host, port: parseInt(port, 10), retrieveMode: 'cmove' });
+      if(!res || !res.ok){ alert((res && res.error) || 'Kaynak eklenemedi.'); return; }
+      document.getElementById('newSrcAe').value = '';
+      document.getElementById('newSrcHost').value = '';
+      document.getElementById('newSrcPort').value = '';
+      await loadRealPacsConfig();
+      return;
+    }
     var list = document.getElementById('pacsSrcList');
     var row = document.createElement('div');
     row.className = 'dest-row';
@@ -2683,10 +2796,15 @@
     document.getElementById('newSrcPort').value = '';
     refreshPacsSrcOptions();
   }
-  function removeSrcRow(btn){
+  async function removeSrcRow(btn){
     var list = document.getElementById('pacsSrcList');
     if(list.querySelectorAll('.dest-row').length <= 1) return;
     var row = btn.closest('.dest-row');
+    if(hasNative){
+      await nativeCall('removeSource', { aeTitle: row.dataset.ae });
+      await loadRealPacsConfig();
+      return;
+    }
     var wasDefault = !!row.querySelector('.dest-actions > .pill');
     row.remove();
     if(wasDefault){
@@ -3124,10 +3242,37 @@
     }
   }
 
+  async function refreshRecentTransfers(){
+    if(!hasNative) return;
+    var res = await nativeCall('getRecentTransfers');
+    if(!res || !res.ok) return;
+
+    document.getElementById('kpiSentToday').textContent = res.sentToday;
+    document.getElementById('kpiFailedToday').textContent = res.failedToday;
+    document.getElementById('kpiTotalSends').textContent = res.sentToday + res.failedToday;
+    document.getElementById('kpiTotalData').textContent = res.totalDataFormatted;
+
+    var body = document.getElementById('recentTransfersBody');
+    if(!res.rows.length){
+      body.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-lo); padding:16px;">Bu oturumda henüz gönderim yapılmadı.</td></tr>';
+      return;
+    }
+    body.innerHTML = res.rows.map(function(r){
+      var init = (r.patientName || '?').split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
+      var pillClass = r.success ? 'ok' : 'warn';
+      var pillText = r.success ? 'Aktarıldı' : 'Başarısız';
+      return '<tr><td class="pname"><div class="row"><div class="av">' + init + '</div>' + r.patientName + '</div></td>' +
+        '<td>' + (r.modality || '—') + '</td><td>' + (r.destination || '—') + '</td><td>' + r.time + '</td>' +
+        '<td><span class="dotpill ' + pillClass + '">' + pillText + '</span></td></tr>';
+    }).join('');
+  }
+
   if(hasNative){
     document.addEventListener('DOMContentLoaded', function(){
       nativeScanDrives();
       loadRealPacsConfig();
+      refreshRecentTransfers();
+      refreshTopBarInfo();
     });
   }
 
@@ -3228,6 +3373,7 @@
               '<div><b>Gönderilemedi</b>' + res.error + '</div>';
           }
           finishSend(failedNames);
+          refreshRecentTransfers();
         }, 300);
       });
       return;

@@ -24,6 +24,11 @@ public sealed class WebBridge
     private readonly Dictionary<string, DicomStudyRecord> _scannedStudies = new();
     private readonly Dictionary<string, DicomStudyRecord> _foundStudies = new();
 
+    // Real transfer history for this session — backs the home screen's "Son Aktarılanlar"
+    // KPI cards and table, which used to show the mockup's hardcoded demo numbers.
+    private sealed record TransferRecord(string PatientName, string Modality, string Destination, DateTime Timestamp, bool Success, long Bytes);
+    private readonly List<TransferRecord> _transferHistory = new();
+
     private sealed record BridgeRequest(int Id, string Action, JsonElement Payload);
     private sealed record BridgeResponse(int Id, object? Result);
 
@@ -57,6 +62,21 @@ public sealed class WebBridge
                 "sendStudy" => await HandleSendStudyAsync(request.Payload),
                 "findStudies" => await HandleFindStudiesAsync(request.Payload),
                 "retrieveStudy" => await HandleRetrieveStudyAsync(request.Payload),
+                "getRecentTransfers" => HandleGetRecentTransfers(),
+                "getAppSettings" => HandleGetAppSettings(),
+                "saveAppSettings" => HandleSaveAppSettings(request.Payload),
+                "getLocalIp" => HandleGetLocalIp(),
+                "getUsers" => HandleGetUsers(),
+                "addUser" => HandleAddUser(request.Payload),
+                "removeUser" => HandleRemoveUser(request.Payload),
+                "addDestination" => HandleAddDestination(request.Payload),
+                "removeDestination" => HandleRemoveDestination(request.Payload),
+                "setDefaultDestination" => HandleSetDefaultDestination(request.Payload),
+                "addSource" => HandleAddSource(request.Payload),
+                "removeSource" => HandleRemoveSource(request.Payload),
+                "setDefaultSource" => HandleSetDefaultSource(request.Payload),
+                "getLog" => HandleGetLog(),
+                "clearLog" => HandleClearLog(),
                 _ => new { ok = false, error = "unknown action: " + request.Action }
             };
         }
@@ -208,6 +228,11 @@ public sealed class WebBridge
             var sent = outcomes.Sum(o => o.SentCount);
             var failed = outcomes.Sum(o => o.FailedCount);
             App.Log.Log(failed == 0, "PACS'e Gönderim", $"{study.PatientName} → {destination} — {sent} gönderildi, {failed} hata.");
+
+            var bytes = filteredStudy.Series.SelectMany(s => s.FilePaths)
+                .Sum(p => File.Exists(p) ? new FileInfo(p).Length : 0);
+            _transferHistory.Insert(0, new TransferRecord(study.PatientName, study.Modality ?? "", destination.AeTitle, DateTime.Now, failed == 0, bytes));
+
             return new { ok = failed == 0, sentCount = sent, failedCount = failed };
         }
         catch (TcValidationException ex)
@@ -277,6 +302,208 @@ public sealed class WebBridge
             App.Log.Log(false, "PACS Getir", $"{study.PatientName} ← {source} — {ex.Message}");
             return new { ok = false, error = ex.Message };
         }
+    }
+
+    private object HandleGetRecentTransfers()
+    {
+        var today = DateTime.Today;
+        var sentToday = _transferHistory.Count(t => t.Success && t.Timestamp.Date == today);
+        var failedToday = _transferHistory.Count(t => !t.Success && t.Timestamp.Date == today);
+        var totalBytes = _transferHistory.Where(t => t.Success).Sum(t => t.Bytes);
+
+        return new
+        {
+            ok = true,
+            sentToday,
+            failedToday,
+            totalDataFormatted = FormatBytes(totalBytes),
+            rows = _transferHistory.Take(10).Select(t => new
+            {
+                patientName = t.PatientName,
+                modality = t.Modality,
+                destination = t.Destination,
+                time = t.Timestamp.ToString("dd.MM.yyyy HH:mm"),
+                success = t.Success
+            }).ToList()
+        };
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes >= 1_073_741_824) return (bytes / 1_073_741_824.0).ToString("0.0") + " GB";
+        if (bytes >= 1_048_576) return (bytes / 1_048_576.0).ToString("0.0") + " MB";
+        if (bytes >= 1024) return (bytes / 1024.0).ToString("0.0") + " KB";
+        return bytes + " B";
+    }
+
+    private static object HandleGetAppSettings() => new
+    {
+        ok = true,
+        localAeTitle = App.Settings.LocalAeTitle,
+        localPort = App.Settings.LocalPort,
+        storageFolder = App.Settings.TempStorageFolder,
+        maxBatchSeries = App.Settings.MaxBatchSeries
+    };
+
+    private static object HandleSaveAppSettings(JsonElement payload)
+    {
+        if (payload.TryGetProperty("localAeTitle", out var ae) && !string.IsNullOrWhiteSpace(ae.GetString()))
+            App.Settings.LocalAeTitle = ae.GetString()!;
+        if (payload.TryGetProperty("localPort", out var port) && port.TryGetInt32(out var portNum) && portNum > 0)
+            App.Settings.LocalPort = portNum;
+        if (payload.TryGetProperty("storageFolder", out var sf) && !string.IsNullOrWhiteSpace(sf.GetString()))
+            App.Settings.TempStorageFolder = sf.GetString()!;
+        if (payload.TryGetProperty("maxBatchSeries", out var mb) && mb.TryGetInt32(out var mbNum) && mbNum > 0)
+            App.Settings.MaxBatchSeries = mbNum;
+
+        App.SaveSettings();
+        return new
+        {
+            ok = true,
+            note = "Yerel AE/Port değişikliği, DICOM sunucusunun yeniden başlatılması için uygulamanın kapatılıp açılmasını gerektirir."
+        };
+    }
+
+    private static object HandleGetLocalIp()
+    {
+        try
+        {
+            using var socket = new System.Net.Sockets.Socket(
+                System.Net.Sockets.AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
+            socket.Connect("8.8.8.8", 65530);
+            var endPoint = socket.LocalEndPoint as System.Net.IPEndPoint;
+            return new { ok = true, ip = endPoint?.Address.ToString() ?? "127.0.0.1" };
+        }
+        catch
+        {
+            return new { ok = true, ip = "127.0.0.1" };
+        }
+    }
+
+    private static object HandleGetUsers() => new
+    {
+        ok = true,
+        users = App.Settings.Users.Select(u => new
+        {
+            username = u.Username,
+            isAdmin = u.IsAdmin,
+            canTransferCd = u.CanTransferCd,
+            canQueryRetrieve = u.CanQueryRetrieve
+        }).ToList()
+    };
+
+    private static object HandleAddUser(JsonElement payload)
+    {
+        var username = payload.TryGetProperty("username", out var u) ? u.GetString() : null;
+        var password = payload.TryGetProperty("password", out var p) ? p.GetString() : null;
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            return new { ok = false, error = "Kullanıcı adı ve şifre gerekli." };
+
+        if (App.Settings.Users.Any(x => x.Username.Equals(username, StringComparison.OrdinalIgnoreCase)))
+            return new { ok = false, error = "Bu kullanıcı adı zaten kullanılıyor." };
+
+        var canTransfer = payload.TryGetProperty("canTransferCd", out var ct) && ct.ValueKind == JsonValueKind.True;
+        var canQuery = payload.TryGetProperty("canQueryRetrieve", out var cq) && cq.ValueKind == JsonValueKind.True;
+
+        App.Settings.Users.Add(new UserAccount
+        {
+            Username = username,
+            PasswordHash = PasswordHasher.Hash(password),
+            IsAdmin = false,
+            CanTransferCd = canTransfer,
+            CanQueryRetrieve = canQuery
+        });
+        App.SaveSettings();
+        return new { ok = true };
+    }
+
+    private static object HandleRemoveUser(JsonElement payload)
+    {
+        var username = payload.TryGetProperty("username", out var u) ? u.GetString() : null;
+        var user = App.Settings.Users.FirstOrDefault(x => x.Username == username);
+        if (user is null) return new { ok = false, error = "Kullanıcı bulunamadı." };
+        if (user.IsAdmin) return new { ok = false, error = "Yönetici hesabı silinemez." };
+
+        App.Settings.Users.Remove(user);
+        App.SaveSettings();
+        return new { ok = true };
+    }
+
+    private static object HandleAddDestination(JsonElement payload) => AddNode(payload, App.Settings.SendDestinations);
+    private static object HandleAddSource(JsonElement payload) => AddNode(payload, App.Settings.QuerySources, readRetrieveMode: true);
+
+    private static object AddNode(JsonElement payload, List<PacsNode> list, bool readRetrieveMode = false)
+    {
+        var ae = payload.TryGetProperty("aeTitle", out var a) ? a.GetString() : null;
+        var host = payload.TryGetProperty("host", out var h) ? h.GetString() : null;
+        var portOk = payload.TryGetProperty("port", out var p) && p.TryGetInt32(out var port);
+        if (string.IsNullOrWhiteSpace(ae) || string.IsNullOrWhiteSpace(host) || !portOk)
+            return new { ok = false, error = "AE Title, Host ve Port gerekli." };
+
+        var mode = RetrieveMode.CMove;
+        if (readRetrieveMode && payload.TryGetProperty("retrieveMode", out var rm) && rm.GetString() == "cget")
+            mode = RetrieveMode.CGet;
+
+        list.Add(new PacsNode
+        {
+            AeTitle = ae,
+            Host = host,
+            Port = port,
+            IsDefault = list.Count == 0,
+            RetrieveMode = mode
+        });
+        App.SaveSettings();
+        return new { ok = true };
+    }
+
+    private static object HandleRemoveDestination(JsonElement payload) => RemoveNode(payload, App.Settings.SendDestinations);
+    private static object HandleRemoveSource(JsonElement payload) => RemoveNode(payload, App.Settings.QuerySources);
+
+    private static object RemoveNode(JsonElement payload, List<PacsNode> list)
+    {
+        if (list.Count <= 1) return new { ok = false, error = "En az bir kayıt kalmalı." };
+        var ae = payload.TryGetProperty("aeTitle", out var a) ? a.GetString() : null;
+        var node = list.FirstOrDefault(n => n.AeTitle == ae);
+        if (node is null) return new { ok = false, error = "Kayıt bulunamadı." };
+
+        var wasDefault = node.IsDefault;
+        list.Remove(node);
+        if (wasDefault && list.Count > 0) list[0].IsDefault = true;
+        App.SaveSettings();
+        return new { ok = true };
+    }
+
+    private static object HandleSetDefaultDestination(JsonElement payload) => SetDefaultNode(payload, App.Settings.SendDestinations);
+    private static object HandleSetDefaultSource(JsonElement payload) => SetDefaultNode(payload, App.Settings.QuerySources);
+
+    private static object SetDefaultNode(JsonElement payload, List<PacsNode> list)
+    {
+        var ae = payload.TryGetProperty("aeTitle", out var a) ? a.GetString() : null;
+        var node = list.FirstOrDefault(n => n.AeTitle == ae);
+        if (node is null) return new { ok = false, error = "Kayıt bulunamadı." };
+
+        foreach (var n in list) n.IsDefault = false;
+        node.IsDefault = true;
+        App.SaveSettings();
+        return new { ok = true };
+    }
+
+    private static object HandleGetLog() => new
+    {
+        ok = true,
+        entries = App.Log.Entries.Select(e => new
+        {
+            success = e.Success,
+            title = e.Title,
+            message = e.Message,
+            time = e.Timestamp.ToString("dd.MM.yyyy HH:mm")
+        }).ToList()
+    };
+
+    private static object HandleClearLog()
+    {
+        App.Log.Clear();
+        return new { ok = true };
     }
 
     private static PacsNode? ReadNode(JsonElement payload)
