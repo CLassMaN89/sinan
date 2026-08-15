@@ -436,7 +436,8 @@ public sealed class WebBridge
     {
         var ae = payload.TryGetProperty("aeTitle", out var a) ? a.GetString() : null;
         var host = payload.TryGetProperty("host", out var h) ? h.GetString() : null;
-        var portOk = payload.TryGetProperty("port", out var p) && p.TryGetInt32(out var port);
+        var port = 0;
+        var portOk = payload.TryGetProperty("port", out var p) && p.TryGetInt32(out port);
         if (string.IsNullOrWhiteSpace(ae) || string.IsNullOrWhiteSpace(host) || !portOk)
             return new { ok = false, error = "AE Title, Host ve Port gerekli." };
 
