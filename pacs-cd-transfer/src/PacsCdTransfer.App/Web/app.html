@@ -1315,8 +1315,8 @@
             <div style="padding:13px 15px 0;">
               <div class="viewer-box">
                 <div class="scan"></div>
-                <div class="ov-tl"><b>DEMIR ARIFHAN AHMET</b><br/>BT Toraks · Seri 3/6<br/>512×512</div>
-                <div class="ov-br">Görüntü 42/155</div>
+                <div class="ov-tl" id="detailOvTl"><b>DEMIR ARIFHAN AHMET</b><br/>BT Toraks · Seri 3/6<br/>512×512</div>
+                <div class="ov-br" id="detailOvBr">Görüntü 42/155</div>
               </div>
             </div>
             <div class="series-strip">
@@ -2854,14 +2854,19 @@
 
   function loadQueuePatient(i){
     var cur = window.cdQueue[window.cdQueueIndex];
-    if(cur){
+    var target = window.cdQueue[i];
+    /* only carry edits forward when actually switching AWAY from a different, already-loaded
+       item — callers that open a brand-new queue set cdQueueIndex to the same i beforehand, so
+       cur and target are the same fresh object here; saving "previous" values in that case would
+       stomp the new patient's real data with whatever was still showing on screen from before. */
+    if(cur && cur !== target){
       var prevName = document.getElementById('fldName');
       var prevTc = document.getElementById('fldTc');
       if(prevName) cur.editedName = prevName.value;
       if(prevTc) cur.editedTc = prevTc.value;
     }
     window.cdQueueIndex = i;
-    var p = window.cdQueue[i];
+    var p = target;
     if(!p) return;
 
     document.getElementById('detailPatientName').textContent = p.name;
@@ -2878,6 +2883,19 @@
 
     buildSeriesThumbs(p.seriCount, p.series);
     renderWorklist();
+
+    var ovTl = document.getElementById('detailOvTl');
+    var ovBr = document.getElementById('detailOvBr');
+    if(ovTl){
+      var displayName = (p.editedName || p.name || '').toUpperCase();
+      var firstSeries = p.series && p.series.length ? p.series[0] : null;
+      var seriesLabel = firstSeries ? (firstSeries.description || firstSeries.modality || 'Seri 1') : (p.mod || 'Seri');
+      ovTl.innerHTML = '<b>' + displayName + '</b><br/>' + seriesLabel + ' · Seri 1/' + p.seriCount + '<br/>512×512';
+    }
+    if(ovBr){
+      var instanceCount = p.series ? p.series.reduce(function(sum, s){ return sum + (s.instanceCount || 0); }, 0) : 0;
+      ovBr.textContent = instanceCount ? ('Görüntü 1/' + instanceCount) : '';
+    }
   }
   function toggleAllPlistRows(headCb){
     document.querySelectorAll('.plist-row-chk').forEach(function(cb){ cb.checked = headCb.checked; });
