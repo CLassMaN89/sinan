@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>SK Viewer PACS — Karşılaştırma 3 · İkili Blok</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{
+    /* Gri tonlamalı (monokrom) tanı monitörlerinde de okunaklı olacak
+       şekilde ton FARKI değil, PARLAKLIK (luminance) farkı esas alındı. */
+    --bg-0:#08090b;
+    --bg-1:#101216;
+    --bg-2:#171a1f;
+    --bg-3:#1e2228;
+    --line:#262a31;
+    --line-soft:#1a1d22;
+
+    --text-hi:#d7dbe1;
+    --text-md:#8f96a1;
+    --text-lo:#5b6169;
+
+    --accent:#9fc6a8;        /* açık, düşük doygunlukta yeşilimsi gri — grayscale'de net orta ton */
+    --accent-dim:#5f8a68;
+    --accent-line:#4b6e53;
+    --accent-bg:rgba(159,198,168,0.12);
+
+    --ok:#7fae87;
+    --ok-bg:rgba(127,174,135,0.14);
+
+    --radius:6px;
+    --font: -apple-system, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; padding:0; height:100%; background:var(--bg-0); color:var(--text-hi); font-family:var(--font); font-size:13px; -webkit-font-smoothing:antialiased; }
+  .app{ display:flex; flex-direction:column; height:100vh; min-height:640px; border:1px solid var(--line-soft); }
+
+  /* ===== 1. HASTA BİLGİ ŞERİDİ — "İKİLİ BLOK" (sol kimlik kartı + sağ ızgara) ===== */
+  .patient-strip{
+    height:56px; display:flex; align-items:stretch;
+    background:var(--bg-1); border-bottom:1px solid var(--line);
+    padding:6px 14px; gap:14px; flex-shrink:0; white-space:nowrap;
+  }
+  .brand{ display:none; }
+
+  .id-card{
+    display:flex; align-items:center; gap:10px;
+    background:var(--bg-2); border:1px solid var(--line);
+    border-left:3px solid var(--accent);
+    border-radius:6px; padding:0 14px; flex-shrink:0;
+  }
+  .id-card .initial{
+    width:30px; height:30px; border-radius:50%; background:var(--accent-bg);
+    border:1px solid var(--accent-line); color:var(--accent); font-weight:700; font-size:12px;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .id-card .txt .pname{ font-size:13.5px; font-weight:700; color:var(--text-hi); }
+  .id-card .txt .psub{ font-size:10px; color:var(--text-md); margin-top:2px; }
+
+  .fields{ display:grid; grid-template-columns:repeat(4, auto); grid-auto-flow:column; grid-template-rows:repeat(2,auto); gap:3px 24px; align-items:center; flex:1; overflow:hidden; }
+  .fld{ display:flex; align-items:baseline; gap:6px; flex-shrink:0; }
+  .fld .k{ font-size:9px; color:var(--text-lo); text-transform:uppercase; letter-spacing:.5px; width:52px; display:inline-block; }
+  .fld .v{ font-size:11.5px; color:var(--text-hi); font-weight:600; }
+  .fld.patient{ display:none; }
+  .fld .v.strong{ color:var(--accent); }
+
+  .mod-chip{
+    align-self:center;
+    padding:6px 14px; border-radius:6px; font-size:11px; font-weight:700; letter-spacing:.6px;
+    background:var(--accent-bg); color:var(--accent); border:1px solid var(--accent-line); flex-shrink:0;
+  }
+
+  /* ===== 2. ARAÇ ÇUBUĞU ===== */
+  .toolbar{ display:flex; align-items:center; gap:2px; height:46px; background:var(--bg-1); border-bottom:1px solid var(--line); padding:0 8px; flex-shrink:0; overflow-x:auto; }
+  .tab-group{ display:flex; gap:4px; margin-right:10px; }
+  .tab{ display:flex; align-items:center; gap:6px; padding:6px 12px; border-radius:5px; color:var(--text-md); font-size:12px; font-weight:500; border:1px solid transparent; }
+  .tab.active{ background:var(--accent-bg); color:var(--accent); border-color:var(--accent-line); }
+  .tab .badge{ background:var(--bg-3); color:var(--text-md); font-size:10px; padding:1px 5px; border-radius:8px; }
+  .search-box{ display:flex; align-items:center; gap:6px; background:var(--bg-3); border:1px solid var(--line); border-radius:5px; padding:5px 10px; margin-right:10px; color:var(--text-lo); font-size:12px; min-width:170px; }
+  .tool-divider{ width:1px; align-self:stretch; margin:8px 6px; background:var(--line); flex-shrink:0; }
+  .tool-btn{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; width:50px; height:40px; border-radius:5px; color:var(--text-md); font-size:9.5px; flex-shrink:0; }
+  .tool-btn.active{ background:var(--accent-bg); color:var(--accent); }
+  .tool-btn .ic{ font-size:15px; }
+
+  /* ===== GÖVDE ===== */
+  .body{ flex:1; display:flex; min-height:0; }
+  .sidebar{ width:210px; flex-shrink:0; background:var(--bg-1); border-right:1px solid var(--line); overflow-y:auto; padding:8px; }
+  .study-group{ margin-bottom:10px; border-radius:var(--radius); overflow:hidden; border:1px solid var(--line); }
+  .study-head{ background:var(--accent-bg); color:var(--accent); padding:7px 9px; font-size:10.5px; font-weight:600; line-height:1.4; }
+  .study-head .sub{ color:var(--text-md); font-weight:400; font-size:9.5px; }
+  .thumbs{ display:flex; flex-wrap:wrap; gap:6px; padding:8px; background:var(--bg-2); }
+  .thumb{ width:56px; }
+  .thumb .box{ width:56px; height:56px; border-radius:4px; background:linear-gradient(160deg,#22262c,#111316); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; color:var(--text-lo); font-size:9px; }
+  .thumb .box.active{ border-color:var(--accent); }
+  .thumb .cap{ font-size:9px; color:var(--text-lo); text-align:center; margin-top:3px; }
+
+  .viewers{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  .panes{ flex:1; display:flex; min-height:0; }
+  .pane{ flex:1; position:relative; background:#050607; border-right:1px solid var(--line); overflow:hidden; }
+  .pane:last-child{ border-right:none; }
+  .pane-canvas{ position:absolute; inset:0; background:radial-gradient(ellipse at center, #14171b 0%, #050607 72%); }
+  .scan-shape{ position:absolute; inset:0; margin:auto; width:70%; height:80%; border-radius:50%/38%;
+    background:radial-gradient(ellipse 62% 85% at 50% 45%, #23282e 0%, #12151a 55%, #050607 100%);
+    opacity:.9; }
+  .pane-overlay-tl{ position:absolute; top:10px; left:10px; font-size:10.5px; line-height:1.5; color:var(--text-md); text-shadow:0 1px 2px #000; }
+  .pane-overlay-tl b{ color:var(--text-hi); }
+  .pane-overlay-tl .pn{ color:var(--accent); font-weight:700; font-size:11.5px; margin-bottom:2px; }
+  .pane-overlay-tr{ position:absolute; top:10px; right:10px; text-align:right; font-size:10.5px; color:var(--text-md); line-height:1.45; }
+  .pane-overlay-tr b{ color:var(--text-hi); }
+  .study-badge{ position:absolute; top:74px; left:10px; font-size:10px; font-weight:700; padding:3px 8px; border-radius:3px; }
+  .study-badge.new{ background:var(--ok-bg); color:var(--ok); border:1px solid rgba(127,174,135,.4); }
+  .study-badge.old{ background:var(--accent-bg); color:var(--accent); border:1px solid var(--accent-line); }
+  .axial-badge{ position:absolute; bottom:12px; left:12px; border:1px solid var(--accent-line); color:var(--accent); font-size:11px; font-weight:700; padding:5px 10px; border-radius:5px; background:var(--bg-2); }
+  .zoomrail{ position:absolute; left:12px; top:110px; bottom:60px; width:16px; display:flex; flex-direction:column; align-items:center; color:var(--text-lo); font-size:12px; }
+  .zoomrail .track{ flex:1; width:2px; background:var(--line); margin:6px 0; position:relative; }
+  .zoomrail .thumb2{ position:absolute; left:50%; top:35%; transform:translate(-50%,-50%); width:9px; height:9px; border-radius:50%; background:var(--accent); }
+
+  .mpr-bar{ height:38px; display:flex; align-items:center; gap:14px; background:var(--bg-1); border-top:1px solid var(--line); padding:0 12px; flex-shrink:0; }
+  .mpr-tabs{ display:flex; gap:3px; }
+  .mpr-tabs span{ width:26px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:4px; font-size:10.5px; font-weight:700; color:var(--text-md); border:1px solid var(--line); }
+  .mpr-tabs span.on{ background:var(--accent-bg); color:var(--accent); border-color:var(--accent-line); }
+  .mpr-slider{ flex:1; height:3px; background:var(--line); border-radius:2px; position:relative; }
+  .mpr-slider .fill{ position:absolute; left:0; top:0; bottom:0; width:20%; background:var(--accent-dim); border-radius:2px; }
+  .mpr-count{ font-size:11px; color:var(--text-lo); width:56px; text-align:right; }
+  .net-chip{ display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--ok); background:var(--ok-bg); padding:3px 9px; border-radius:12px; margin-left:auto; }
+  .net-chip .dot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="patient-strip">
+    <div class="id-card">
+      <div class="initial">SR</div>
+      <div class="txt">
+        <div class="pname">SAMIKIRAN RAMAZAN</div>
+        <div class="psub">TC 58237416354 · Doğum 01.07.1964</div>
+      </div>
+    </div>
+    <div class="fields">
+      <div class="fld"><span class="k">Tetkik</span><span class="v">BT, TORAKS, KONTRASTLI</span></div>
+      <div class="fld"><span class="k">Modalite</span><span class="v strong">CT</span></div>
+      <div class="fld"><span class="k">Çekim</span><span class="v">08.08.2026 00:57</span></div>
+      <div class="fld"><span class="k">Acc No</span><span class="v">QKZ505048505</span></div>
+      <div class="fld"><span class="k">Seri</span><span class="v">3/6</span></div>
+      <div class="fld"><span class="k">Görüntü</span><span class="v">155/737</span></div>
+      <div class="fld"><span class="k">WL/WW</span><span class="v">40/400</span></div>
+    </div>
+    <div class="mod-chip">ORIGINAL</div>
+  </div>
+
+  <div class="toolbar">
+    <div class="tab-group"><div class="tab">Görüntü</div><div class="tab active">Online <span class="badge">1</span></div></div>
+    <div class="search-box">Hasta / Dosya No / Acc / TC Ara…</div>
+    <div class="tool-divider"></div>
+    <div class="tool-btn"><div class="ic">▦</div>Database</div>
+    <div class="tool-btn"><div class="ic">⌕</div>Arama</div>
+    <div class="tool-btn"><div class="ic">▣</div>Aç</div>
+    <div class="tool-btn"><div class="ic">▢</div>Klasör</div>
+    <div class="tool-btn"><div class="ic">◈</div>CD/ISO</div>
+    <div class="tool-divider"></div>
+    <div class="tool-btn"><div class="ic">▭</div>Ekran</div>
+    <div class="tool-btn"><div class="ic">⇄</div>Senkron</div>
+    <div class="tool-btn active"><div class="ic">◎</div>Referans</div>
+    <div class="tool-btn"><div class="ic">✛</div>3D Crosshair</div>
+    <div class="tool-divider"></div>
+    <div class="tool-btn"><div class="ic">✋</div>Pan</div>
+    <div class="tool-btn"><div class="ic">📐</div>Ölçüm</div>
+    <div class="tool-btn"><div class="ic">🔍</div>Zoom</div>
+    <div class="tool-btn"><div class="ic">◐</div>W/L</div>
+    <div class="tool-btn"><div class="ic">◑</div>Kontrast</div>
+    <div class="tool-btn"><div class="ic">↺</div>Dönüş</div>
+    <div class="tool-divider"></div>
+    <div class="tool-btn"><div class="ic">⎌</div>Son Ölçüm</div>
+    <div class="tool-btn"><div class="ic">🗑</div>Sil</div>
+    <div class="tool-btn"><div class="ic">⟲</div>Sıfırla</div>
+  </div>
+
+  <div class="body">
+    <div class="sidebar">
+      <div class="study-group">
+        <div class="study-head">UMRANIYE EAH<br><span class="sub">SAMIKIRAN RAMAZAN · 08.08.2026 00:54 · CT</span></div>
+        <div class="thumbs">
+          <div class="thumb"><div class="box">2.0</div><div class="cap">2.0</div></div>
+          <div class="thumb"><div class="box">1.0</div><div class="cap">Vücut 1.0</div></div>
+          <div class="thumb"><div class="box active">737</div><div class="cap">Vücut 1.0 CT</div></div>
+          <div class="thumb"><div class="box">148</div><div class="cap">Akciğer 5.0 CT</div></div>
+        </div>
+      </div>
+      <div class="study-group">
+        <div class="study-head">UMRANIYE EĞİTİM ARAŞTIRMA<br><span class="sub">SAMIKIRAN RAMAZAN · 21.12.2018 15:39 · CT</span></div>
+        <div class="thumbs">
+          <div class="thumb"><div class="box">428</div><div class="cap">1.25mm</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="viewers">
+      <div class="panes">
+        <div class="pane">
+          <div class="pane-canvas"></div><div class="scan-shape"></div>
+          <div class="pane-overlay-tl">
+            <div class="pn">SAMIKIRAN RAMAZAN</div>
+            <div>Çekim: <b>08.08.2026 00:57:00</b></div>
+            <div>Doğum: 01.07.1964</div>
+            <div>TC: 58237416354</div>
+            <div>Acc No: QKZ505048505</div>
+          </div>
+          <div class="pane-overlay-tr">TH: <b>1.00 mm</b><br>WL: <b>400/40</b><br>Seri 3/6 · Görüntü 155/737</div>
+          <div class="study-badge new">YENİ ÇEKİM · 08.08.2026</div>
+          <div class="zoomrail"><span>+</span><div class="track"><div class="thumb2"></div></div><span>–</span></div>
+          <div class="axial-badge">A · Axial</div>
+        </div>
+        <div class="pane">
+          <div class="pane-canvas"></div><div class="scan-shape"></div>
+          <div class="pane-overlay-tl">
+            <div class="pn">SAMIKIRAN RAMAZAN</div>
+            <div>Çekim: <b>21.12.2018 15:39:11</b></div>
+            <div>Doğum: 01.07.1964</div>
+            <div>TC: 58237416354</div>
+            <div>Acc No: 235431294</div>
+          </div>
+          <div class="pane-overlay-tr">TH: <b>1.25 mm</b><br>WL: <b>400/40</b><br>Seri 6/6 · Görüntü 1/428</div>
+          <div class="study-badge old">ESKİ ÇEKİM · 21.12.2018</div>
+          <div class="zoomrail"><span>+</span><div class="track"><div class="thumb2"></div></div><span>–</span></div>
+          <div class="axial-badge">A · Axial</div>
+        </div>
+      </div>
+
+      <div class="mpr-bar">
+        <div class="mpr-tabs"><span>S</span><span>A</span><span>C</span><span class="on">O</span><span>4</span><span class="on">Ref</span><span>3D</span><span>ANGIO</span></div>
+        <div class="mpr-slider"><div class="fill"></div></div>
+        <div class="mpr-count">155 / 737</div>
+        <div class="net-chip"><span class="dot"></span>AĞ BAĞLI · 10.215.116.172</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
