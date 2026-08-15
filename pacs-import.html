@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>SK Viewer PACS — Sorgu / CD İçe Aktarma</title>
+<style>
+  :root{
+    --bg:#eef1f5;
+    --panel:#ffffff;
+    --panel-alt:#f7f9fb;
+    --line:#e0e4ea;
+    --line-strong:#d2d7e0;
+    --text-hi:#1c2230;
+    --text-md:#5b6472;
+    --text-lo:#8a92a0;
+
+    --primary:#2f6fed;
+    --primary-dim:#e8effe;
+    --primary-line:#c3d6fb;
+
+    --ok:#17915a;
+    --ok-bg:#e6f6ee;
+    --ok-line:#bfe8d3;
+
+    --warn:#b7791f;
+    --warn-bg:#fbf1de;
+
+    --radius:10px;
+    --font: -apple-system,"Segoe UI",Roboto,Inter,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--text-hi); font-family:var(--font); font-size:13px; }
+  svg.ic{ stroke:currentColor; stroke-width:1.7; fill:none; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+
+  .app{ display:flex; flex-direction:column; min-height:100vh; }
+
+  /* ===== ÜST BAR ===== */
+  .topbar{
+    height:60px; display:flex; align-items:center; gap:16px;
+    background:var(--panel); border-bottom:1px solid var(--line);
+    padding:0 22px; flex-shrink:0;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .mark{ width:32px; height:32px; border-radius:8px; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; }
+  .brand .tx{ display:flex; flex-direction:column; line-height:1.25; }
+  .brand .t1{ font-size:13px; font-weight:700; color:var(--text-hi); }
+  .brand .t2{ font-size:10.5px; color:var(--text-lo); }
+
+  .topbar .spacer{ flex:1; }
+
+  .status-pill{
+    display:flex; align-items:center; gap:7px;
+    background:var(--ok-bg); border:1px solid var(--ok-line); color:var(--ok);
+    padding:6px 13px; border-radius:20px; font-size:11.5px; font-weight:700;
+  }
+  .status-pill .dot{ width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .status-pill.muted{ background:var(--panel-alt); border-color:var(--line-strong); color:var(--text-md); }
+
+  .icon-btn{
+    width:36px; height:36px; border-radius:8px; border:1px solid var(--line-strong);
+    background:var(--panel); color:var(--text-md); display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:hover{ background:var(--panel-alt); }
+
+  /* ===== GÖVDE ===== */
+  .grid{ flex:1; display:grid; grid-template-columns:1.55fr 1fr; grid-template-rows:auto auto; gap:16px; padding:18px 22px; }
+
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+  .card-head{ display:flex; align-items:center; gap:9px; padding:14px 18px; border-bottom:1px solid var(--line); }
+  .card-head .ic-wrap{ width:30px; height:30px; border-radius:8px; background:var(--primary-dim); color:var(--primary); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .card-head .t{ font-size:13px; font-weight:700; color:var(--text-hi); }
+  .card-head .s{ font-size:10.5px; color:var(--text-lo); margin-top:2px; }
+  .card-body{ padding:16px 18px; flex:1; }
+
+  /* form */
+  .form-row{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px; }
+  .form-row.cols3{ grid-template-columns:repeat(3,1fr); }
+  .form-row.cols2{ grid-template-columns:repeat(2,1fr); }
+  .fgroup{ display:flex; flex-direction:column; gap:5px; min-width:0; }
+  .fgroup label{ font-size:10px; color:var(--text-md); font-weight:600; }
+  .fgroup input, .fgroup select{
+    width:100%; min-width:0; height:34px; border:1px solid var(--line-strong); border-radius:7px; background:var(--panel-alt);
+    padding:0 10px; font-size:12px; color:var(--text-hi); font-family:var(--font);
+  }
+  .fgroup input:focus, .fgroup select:focus{ outline:none; border-color:var(--primary); background:#fff; }
+
+  .btn{
+    display:inline-flex; align-items:center; gap:7px; height:36px; padding:0 16px;
+    border-radius:7px; border:1px solid transparent; font-size:12px; font-weight:700; cursor:pointer;
+  }
+  .btn-primary{ background:var(--primary); color:#fff; }
+  .btn-outline{ background:#fff; border-color:var(--line-strong); color:var(--text-hi); }
+  .btn-ok{ background:var(--ok); color:#fff; }
+  .btn-row{ display:flex; justify-content:flex-end; gap:8px; margin-top:4px; }
+
+  /* results table */
+  table{ width:100%; border-collapse:collapse; font-size:11.5px; }
+  thead th{ text-align:left; font-size:9.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--text-lo); font-weight:700; padding:8px 10px; border-bottom:1px solid var(--line); }
+  tbody td{ padding:9px 10px; border-bottom:1px solid var(--line); color:var(--text-hi); }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr.sel{ background:var(--primary-dim); }
+  tbody tr:hover{ background:var(--panel-alt); }
+  td.name{ font-weight:600; }
+  .chk{ width:15px; height:15px; accent-color:var(--primary); }
+  .tag{ display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; background:var(--primary-dim); color:var(--primary); }
+
+  /* CD import */
+  .drive-row{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .drive-box{
+    flex:1; display:flex; align-items:center; gap:10px;
+    border:1.5px dashed var(--line-strong); border-radius:9px; padding:12px 14px; background:var(--panel-alt);
+  }
+  .drive-box .ic-wrap{ width:38px; height:38px; border-radius:9px; background:#fff; border:1px solid var(--line-strong); color:var(--primary); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .drive-box .tx .t{ font-size:12px; font-weight:700; color:var(--text-hi); }
+  .drive-box .tx .s{ font-size:10.5px; color:var(--text-lo); margin-top:2px; }
+
+  .file-list{ border:1px solid var(--line); border-radius:8px; overflow:hidden; margin-bottom:14px; }
+  .file-row{ display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--line); font-size:11.5px; }
+  .file-row:last-child{ border-bottom:none; }
+  .file-row .ic-wrap{ color:var(--text-lo); }
+  .file-row .fname{ flex:1; color:var(--text-hi); font-weight:500; }
+  .file-row .fsize{ color:var(--text-lo); font-size:10.5px; }
+  .file-row .fok{ color:var(--ok); }
+
+  .progress-wrap{ margin-bottom:14px; }
+  .progress-wrap .lbl{ display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-md); margin-bottom:6px; }
+  .progress-bar{ height:8px; border-radius:4px; background:var(--line); overflow:hidden; }
+  .progress-bar .fill{ height:100%; width:64%; background:linear-gradient(90deg,var(--primary),#5b93f5); border-radius:4px; }
+
+  /* settings */
+  .settings-split{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .settings-sub{ border:1px solid var(--line); border-radius:8px; padding:14px; background:var(--panel-alt); min-width:0; }
+  .settings-sub .sh{ display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .settings-sub .sh .ic-wrap{ width:24px; height:24px; border-radius:6px; background:#fff; border:1px solid var(--line-strong); color:var(--primary); display:flex; align-items:center; justify-content:center; }
+  .settings-sub .sh .t{ font-size:11.5px; font-weight:700; color:var(--text-hi); }
+
+  .id-summary{ display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--primary-dim); border:1px solid var(--primary-line); border-radius:9px; margin-bottom:14px; }
+  .id-summary .avatar{ width:40px; height:40px; border-radius:50%; background:#fff; border:1.5px solid var(--primary); color:var(--primary); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .id-summary .tx .t{ font-size:13px; font-weight:700; color:var(--text-hi); }
+  .id-summary .tx .s{ font-size:10.5px; color:var(--text-md); margin-top:2px; }
+  .id-summary .badge{ margin-left:auto; font-size:10px; font-weight:700; color:var(--ok); background:var(--ok-bg); border:1px solid var(--ok-line); padding:4px 10px; border-radius:14px; }
+</style>
+</head>
+<body>
+<svg style="display:none">
+<defs>
+<symbol id="ic-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4-6 7-6s5.8 2 7 6"/></symbol>
+<symbol id="ic-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+<symbol id="ic-download" viewBox="0 0 24 24"><path d="M12 3v13M7 12l5 5 5-5"/><path d="M4 19.5h16"/></symbol>
+<symbol id="ic-disc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="0.6" fill="currentColor"/></symbol>
+<symbol id="ic-folder" viewBox="0 0 24 24"><path d="M3.5 6.5A1.5 1.5 0 0 1 5 5h4l2 2.5h8A1.5 1.5 0 0 1 20.5 9v9A1.5 1.5 0 0 1 19 19.5H5A1.5 1.5 0 0 1 3.5 18z"/></symbol>
+<symbol id="ic-pencil" viewBox="0 0 24 24"><path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19z"/><path d="M13.5 6.5L17.5 10.5"/></symbol>
+<symbol id="ic-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2.3M12 18.2v2.3M20.5 12h-2.3M5.8 12H3.5M17.7 6.3l-1.6 1.6M7.9 16.1l-1.6 1.6M17.7 17.7l-1.6-1.6M7.9 7.9L6.3 6.3"/></symbol>
+<symbol id="ic-server" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="6.5" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6.5" rx="1.5"/><circle cx="7" cy="7.3" r="0.6" fill="currentColor" stroke="none"/><circle cx="7" cy="16.8" r="0.6" fill="currentColor" stroke="none"/></symbol>
+<symbol id="ic-router" viewBox="0 0 24 24"><rect x="3" y="10" width="18" height="8" rx="2"/><path d="M7 10V7a5 5 0 0 1 10 0v3"/><circle cx="8" cy="14" r="0.6" fill="currentColor" stroke="none"/><circle cx="11" cy="14" r="0.6" fill="currentColor" stroke="none"/></symbol>
+<symbol id="ic-check" viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></symbol>
+<symbol id="ic-file" viewBox="0 0 24 24"><path d="M6.5 3.5H14l4 4v13H6.5z"/><path d="M14 3.5V8h4"/></symbol>
+<symbol id="ic-refresh" viewBox="0 0 24 24"><path d="M20 11A8 8 0 1 0 18.6 16"/><path d="M20 5v6h-6"/></symbol>
+</defs>
+</svg>
+
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark">SK</div>
+      <div class="tx"><div class="t1">SK Viewer PACS</div><div class="t2">Sorgu / Getir · CD İçe Aktarma</div></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="status-pill"><span class="dot"></span>PACS Bağlantısı: Bağlı</div>
+    <div class="status-pill muted"><svg class="ic" width="13" height="13"><use href="#ic-router"/></svg>AET: SK_LOCAL · 10.20.4.15:104</div>
+    <button class="icon-btn"><svg class="ic" width="17" height="17"><use href="#ic-gear"/></svg></button>
+  </div>
+
+  <div class="grid">
+
+    <!-- PACS SORGU / GETİR -->
+    <div class="card">
+      <div class="card-head">
+        <div class="ic-wrap"><svg class="ic" width="16" height="16"><use href="#ic-search"/></svg></div>
+        <div><div class="t">PACS Sorgu / Getir (Query / Retrieve)</div><div class="s">Uzak sunucudan hasta ve tetkik arayın</div></div>
+      </div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="fgroup"><label>Hasta Adı</label><input type="text" placeholder="Ad Soyad" /></div>
+          <div class="fgroup"><label>Hasta ID / TC</label><input type="text" placeholder="Kimlik No" /></div>
+          <div class="fgroup"><label>Accession No</label><input type="text" placeholder="Erişim No" /></div>
+          <div class="fgroup"><label>Modalite</label>
+            <select><option>Tümü</option><option>CT</option><option>MR</option><option>US</option><option>DX</option></select>
+          </div>
+        </div>
+        <div class="form-row cols3">
+          <div class="fgroup"><label>Başlangıç Tarihi</label><input type="text" value="01.08.2026" /></div>
+          <div class="fgroup"><label>Bitiş Tarihi</label><input type="text" value="15.08.2026" /></div>
+          <div class="fgroup" style="justify-content:flex-end;">
+            <button class="btn btn-primary"><svg class="ic" width="14" height="14"><use href="#ic-search"/></svg>Sorgula</button>
+          </div>
+        </div>
+
+        <table>
+          <thead><tr><th></th><th>Hasta Adı</th><th>Hasta ID</th><th>Tarih</th><th>Modalite</th><th>Seri</th><th>Kurum</th></tr></thead>
+          <tbody>
+            <tr class="sel"><td><input class="chk" type="checkbox" checked /></td><td class="name">Samıkıran Ramazan</td><td>908939</td><td>08.08.2026</td><td><span class="tag">CT</span></td><td>6</td><td>Ümraniye EAH</td></tr>
+            <tr><td><input class="chk" type="checkbox" /></td><td class="name">Arifhan Ahmet Demir</td><td>3875285</td><td>13.08.2026</td><td><span class="tag">CT</span></td><td>9</td><td>Ümraniye EAH</td></tr>
+            <tr><td><input class="chk" type="checkbox" /></td><td class="name">Elif Kaya</td><td>1187734</td><td>12.08.2026</td><td><span class="tag">MR</span></td><td>4</td><td>Ümraniye Eğt. Arş.</td></tr>
+            <tr><td><input class="chk" type="checkbox" /></td><td class="name">Cemal Turan</td><td>7729310</td><td>08.08.2026</td><td><span class="tag">MR</span></td><td>3</td><td>Ümraniye EAH</td></tr>
+          </tbody>
+        </table>
+        <div class="btn-row">
+          <button class="btn btn-outline"><svg class="ic" width="14" height="14"><use href="#ic-refresh"/></svg>Yenile</button>
+          <button class="btn btn-primary"><svg class="ic" width="14" height="14"><use href="#ic-download"/></svg>Seçilenleri Getir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CD İÇE AKTARMA -->
+    <div class="card">
+      <div class="card-head">
+        <div class="ic-wrap"><svg class="ic" width="16" height="16"><use href="#ic-disc"/></svg></div>
+        <div><div class="t">CD / Harici Kaynak İçe Aktarma</div><div class="s">DICOM görüntülerini PACS'e yükleyin</div></div>
+      </div>
+      <div class="card-body">
+        <div class="drive-row">
+          <div class="drive-box">
+            <div class="ic-wrap"><svg class="ic" width="18" height="18"><use href="#ic-disc"/></svg></div>
+            <div class="tx"><div class="t">CD/DVD Sürücü (D:)</div><div class="s">DICOMDIR bulundu · 428 dosya</div></div>
+          </div>
+          <button class="btn btn-outline"><svg class="ic" width="14" height="14"><use href="#ic-folder"/></svg>Klasör Seç</button>
+        </div>
+
+        <div class="file-list">
+          <div class="file-row"><svg class="ic" width="14" height="14"><use href="#ic-file"/></svg><span class="fname">CT_TORAKS_001-155.dcm (seri)</span><span class="fsize">312 MB</span><svg class="ic fok" width="14" height="14"><use href="#ic-check"/></svg></div>
+          <div class="file-row"><svg class="ic" width="14" height="14"><use href="#ic-file"/></svg><span class="fname">CT_TORAKS_156-428.dcm (seri)</span><span class="fsize">288 MB</span><svg class="ic fok" width="14" height="14"><use href="#ic-check"/></svg></div>
+          <div class="file-row"><svg class="ic" width="14" height="14"><use href="#ic-file"/></svg><span class="fname">DICOMDIR</span><span class="fsize">64 KB</span><svg class="ic fok" width="14" height="14"><use href="#ic-check"/></svg></div>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="lbl"><span>PACS'e aktarılıyor…</span><span>274 / 428 dosya</span></div>
+          <div class="progress-bar"><div class="fill"></div></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-outline">İptal</button>
+          <button class="btn btn-ok"><svg class="ic" width="14" height="14"><use href="#ic-download"/></svg>PACS'e Aktar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HASTA BİLGİLERİ (DÜZENLENEBİLİR) -->
+    <div class="card">
+      <div class="card-head">
+        <div class="ic-wrap"><svg class="ic" width="16" height="16"><use href="#ic-pencil"/></svg></div>
+        <div><div class="t">Hasta Bilgileri</div><div class="s">Seçili tetkikin bilgilerini görüntüleyin ve düzenleyin</div></div>
+      </div>
+      <div class="card-body">
+        <div class="id-summary">
+          <div class="avatar">SR</div>
+          <div class="tx"><div class="t">Samıkıran Ramazan</div><div class="s">Hasta ID: 908939 · CT · Ümraniye EAH</div></div>
+          <div class="badge">Kaynak: CD İçe Aktarma</div>
+        </div>
+
+        <div class="form-row cols2">
+          <div class="fgroup"><label>Ad Soyad</label><input type="text" value="Samıkıran Ramazan" /></div>
+          <div class="fgroup"><label>Hasta ID</label><input type="text" value="908939" /></div>
+        </div>
+        <div class="form-row cols3">
+          <div class="fgroup"><label>TC Kimlik No</label><input type="text" value="58237416354" /></div>
+          <div class="fgroup"><label>Doğum Tarihi</label><input type="text" value="01.07.1964" /></div>
+          <div class="fgroup"><label>Cinsiyet</label><select><option>Erkek</option><option>Kadın</option></select></div>
+        </div>
+        <div class="form-row cols2">
+          <div class="fgroup"><label>Accession No</label><input type="text" value="QKZ505048505" /></div>
+          <div class="fgroup"><label>Tetkik Açıklaması</label><input type="text" value="BT, Toraks, Kontrastlı" /></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-outline">Vazgeç</button>
+          <button class="btn btn-primary"><svg class="ic" width="14" height="14"><use href="#ic-check"/></svg>Kaydet / Güncelle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AYARLAR -->
+    <div class="card">
+      <div class="card-head">
+        <div class="ic-wrap"><svg class="ic" width="16" height="16"><use href="#ic-gear"/></svg></div>
+        <div><div class="t">Ayarlar</div><div class="s">PACS bağlantısı ve cihaz bilgileri</div></div>
+      </div>
+      <div class="card-body">
+        <div class="settings-split">
+          <div class="settings-sub">
+            <div class="sh"><div class="ic-wrap"><svg class="ic" width="13" height="13"><use href="#ic-server"/></svg></div><div class="t">PACS Bağlantısı (Uzak)</div></div>
+            <div class="fgroup" style="margin-bottom:9px;"><label>Uzak AET</label><input type="text" value="UMR_PACS" /></div>
+            <div class="form-row cols2" style="margin-bottom:0;">
+              <div class="fgroup"><label>Host / IP</label><input type="text" value="10.20.4.10" /></div>
+              <div class="fgroup"><label>Port</label><input type="text" value="104" /></div>
+            </div>
+            <div class="btn-row"><button class="btn btn-outline"><svg class="ic" width="13" height="13"><use href="#ic-refresh"/></svg>Bağlantıyı Test Et</button></div>
+          </div>
+
+          <div class="settings-sub">
+            <div class="sh"><div class="ic-wrap"><svg class="ic" width="13" height="13"><use href="#ic-router"/></svg></div><div class="t">Bu Cihaz (Yerel)</div></div>
+            <div class="fgroup" style="margin-bottom:9px;"><label>Yerel AET</label><input type="text" value="SK_LOCAL" /></div>
+            <div class="form-row cols2" style="margin-bottom:0;">
+              <div class="fgroup"><label>Yerel IP</label><input type="text" value="10.20.4.15" /></div>
+              <div class="fgroup"><label>Port</label><input type="text" value="104" /></div>
+            </div>
+            <div class="btn-row"><button class="btn btn-primary"><svg class="ic" width="13" height="13"><use href="#ic-check"/></svg>Kaydet</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
