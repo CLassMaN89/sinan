@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Başlık 4 — Renkli Rozet Grid</title>
+<style>
+  :root{
+    --bg:#0a0c10; --line:#232833; --text-hi:#e2e7ef; --text-md:#8890a0; --text-lo:#565e6c;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+
+  .strip{
+    min-height:92px; display:flex; align-items:center; gap:26px;
+    background:linear-gradient(180deg,#12151b,#0d0f14);
+    border-bottom:1px solid var(--line);
+    padding:12px 26px; white-space:nowrap; overflow:hidden;
+  }
+
+  .item.patient{ display:flex; align-items:center; gap:14px; padding-right:26px; margin-right:2px; border-right:1px solid var(--line); flex-shrink:0; }
+  .badge-lg{
+    width:50px; height:50px; border-radius:16px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:21px;
+    background:linear-gradient(135deg,#4f8ce6,#7f4fe6); color:#fff;
+    box-shadow:0 6px 16px -4px rgba(79,140,230,.5);
+  }
+  .item.patient .v{ font-size:19px; font-weight:800; color:#fff; letter-spacing:.2px; }
+  .item.patient .k{ font-size:9px; color:var(--text-lo); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+
+  .grid{ display:grid; grid-template-columns:repeat(4, auto); grid-auto-flow:column; grid-template-rows:repeat(2,auto); gap:8px 22px; flex:1; }
+  .row{ display:flex; align-items:center; gap:9px; }
+  .badge-sm{
+    width:26px; height:26px; border-radius:8px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff;
+  }
+  .row .k{ font-size:8px; color:var(--text-lo); text-transform:uppercase; letter-spacing:.5px; display:block; }
+  .row .v{ font-size:11.5px; color:var(--text-hi); font-weight:600; }
+
+  .c-blue{ background:linear-gradient(135deg,#4f8ce6,#3a6fc4); }
+  .c-amber{ background:linear-gradient(135deg,#e6a84f,#c48a3a); }
+  .c-violet{ background:linear-gradient(135deg,#966de6,#7a4fc4); }
+  .c-teal{ background:linear-gradient(135deg,#38d6c4,#2ab0a1); }
+  .c-pink{ background:linear-gradient(135deg,#e64f7a,#c43a5f); }
+  .c-green{ background:linear-gradient(135deg,#5ad678,#3ab456); }
+
+  .mod{
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    background:linear-gradient(180deg,#e6a84f,#c48a3a); border-radius:12px; padding:10px 20px; flex-shrink:0;
+    box-shadow:0 6px 16px -4px rgba(230,168,79,.4);
+  }
+  .mod .k{ font-size:8px; color:#2a1c05; text-transform:uppercase; letter-spacing:1px; }
+  .mod .v{ color:#1a1103; font-weight:800; font-size:12px; letter-spacing:.5px; }
+</style>
+</head>
+<body>
+  <div class="strip">
+    <div class="item patient">
+      <div class="badge-lg">👤</div>
+      <div><div class="k">Hasta Adı</div><div class="v">Samıkıran Ramazan</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="row"><div class="badge-sm c-blue">🪪</div><div><span class="k">Hasta TC</span><span class="v">58237416354</span></div></div>
+      <div class="row"><div class="badge-sm c-amber">🎂</div><div><span class="k">Doğum Tarihi</span><span class="v">01.07.1964</span></div></div>
+      <div class="row"><div class="badge-sm c-violet">📋</div><div><span class="k">Tetkik</span><span class="v">BT, Toraks, Kontrastlı</span></div></div>
+      <div class="row"><div class="badge-sm c-teal">🕐</div><div><span class="k">Çekim Tarihi/Saat</span><span class="v">08.08.2026 00:57</span></div></div>
+      <div class="row"><div class="badge-sm c-pink">#</div><div><span class="k">Accession No</span><span class="v">QKZ505048505</span></div></div>
+      <div class="row"><div class="badge-sm c-green">📚</div><div><span class="k">Seri / Görüntü</span><span class="v">3/6 · 155/737</span></div></div>
+      <div class="row"><div class="badge-sm c-blue">◐</div><div><span class="k">WL / WW</span><span class="v">40 / 400</span></div></div>
+      <div class="row"><div class="badge-sm c-violet">🩻</div><div><span class="k">Modalite</span><span class="v">CT</span></div></div>
+    </div>
+
+    <div class="mod"><span class="k">Mod</span><span class="v">ORIGINAL</span></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Başlık 1 — Neon Kapsül</title>
+<style>
+  :root{
+    --bg:#08090b; --line:#262a31; --text-hi:#e4e8ee; --text-md:#8f96a1; --text-lo:#5b6169;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+
+  .strip{
+    height:78px; display:flex; align-items:center; gap:10px;
+    background:linear-gradient(180deg,#14171c 0%,#0e1013 100%);
+    border-bottom:1px solid var(--line);
+    padding:0 18px; white-space:nowrap; overflow:hidden;
+  }
+  .cap{
+    display:flex; align-items:center; gap:9px;
+    background:#161a20; border:1px solid #262b33;
+    border-radius:24px; padding:6px 16px 6px 8px;
+    flex-shrink:0;
+  }
+  .cap .ic{
+    width:30px; height:30px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px;
+  }
+  .cap .tx{ display:flex; flex-direction:column; gap:2px; }
+  .cap .k{ font-size:8px; color:var(--text-lo); text-transform:uppercase; letter-spacing:.5px; }
+  .cap .v{ font-size:12px; color:var(--text-hi); font-weight:600; }
+
+  .cap.patient{ padding:5px 18px 5px 6px; }
+  .cap.patient .ic{ width:38px; height:38px; font-size:16px; }
+  .cap.patient .v{ font-size:14.5px; font-weight:700; }
+
+  .ic.pink{ background:rgba(230,79,122,.16); color:#ff7fa3; box-shadow:0 0 12px rgba(230,79,122,.35); }
+  .ic.blue{ background:rgba(79,140,230,.16); color:#7fb0ff; box-shadow:0 0 12px rgba(79,140,230,.35); }
+  .ic.teal{ background:rgba(56,214,196,.16); color:#5cf0d8; box-shadow:0 0 12px rgba(56,214,196,.35); }
+  .ic.amber{ background:rgba(230,168,79,.16); color:#ffc47f; box-shadow:0 0 12px rgba(230,168,79,.35); }
+  .ic.violet{ background:rgba(150,109,230,.16); color:#b79bff; box-shadow:0 0 12px rgba(150,109,230,.35); }
+  .ic.green{ background:rgba(90,214,120,.16); color:#7fe89b; box-shadow:0 0 12px rgba(90,214,120,.35); }
+
+  .spacer{ flex:1; }
+  .mod{
+    display:flex; align-items:center; gap:8px;
+    background:linear-gradient(135deg,#e64f7a,#7f4fe6);
+    border-radius:24px; padding:8px 18px; flex-shrink:0;
+    box-shadow:0 0 18px rgba(230,79,122,.4);
+  }
+  .mod .ic2{ font-size:15px; }
+  .mod .v{ color:#150a10; font-weight:800; font-size:12px; letter-spacing:.5px; }
+</style>
+</head>
+<body>
+  <div class="strip">
+    <div class="cap patient"><div class="ic pink">👤</div><div class="tx"><span class="k">Hasta Adı</span><span class="v">SAMIKIRAN RAMAZAN</span></div></div>
+    <div class="cap"><div class="ic blue">🪪</div><div class="tx"><span class="k">Hasta TC</span><span class="v">58237416354</span></div></div>
+    <div class="cap"><div class="ic amber">🎂</div><div class="tx"><span class="k">Doğum Tarihi</span><span class="v">01.07.1964</span></div></div>
+    <div class="cap"><div class="ic violet">📋</div><div class="tx"><span class="k">Tetkik</span><span class="v">BT, Toraks, Kontrastlı</span></div></div>
+    <div class="cap"><div class="ic teal">🕐</div><div class="tx"><span class="k">Çekim Tarihi/Saat</span><span class="v">08.08.2026 00:57</span></div></div>
+    <div class="cap"><div class="ic green">#</div><div class="tx"><span class="k">Accession No</span><span class="v">QKZ505048505</span></div></div>
+    <div class="cap"><div class="ic blue">📚</div><div class="tx"><span class="k">Seri / Görüntü</span><span class="v">3/6 · 155/737</span></div></div>
+    <div class="cap"><div class="ic teal">◐</div><div class="tx"><span class="k">WL / WW</span><span class="v">40 / 400</span></div></div>
+    <div class="spacer"></div>
+    <div class="mod"><span class="ic2">🩻</span><span class="v">CT · ORIGINAL</span></div>
+  </div>
+</body>
+</html>
