@@ -30,4 +30,18 @@ public partial class MainWindow : Window
         CdTransferTab.RefreshDestinations();
         QueryTab.RefreshSources();
     }
+
+    private void NavCdTransfer_Checked(object sender, RoutedEventArgs e)
+    {
+        if (CdTransferTab is null || QueryTab is null) return;
+        CdTransferTab.Visibility = Visibility.Visible;
+        QueryTab.Visibility = Visibility.Collapsed;
+    }
+
+    private void NavQuery_Checked(object sender, RoutedEventArgs e)
+    {
+        if (CdTransferTab is null || QueryTab is null) return;
+        CdTransferTab.Visibility = Visibility.Collapsed;
+        QueryTab.Visibility = Visibility.Visible;
+    }
 }

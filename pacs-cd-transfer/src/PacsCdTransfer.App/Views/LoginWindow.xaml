@@ -20,9 +20,7 @@
 
             <Button Content="Giriş Yap" Style="{StaticResource PrimaryButton}" Click="LoginButton_Click" Height="38"/>
 
-            <!-- Plain, unstyled button (no custom ControlTemplate) — also rules out the
-                 styled-button hit-testing as a cause if this one doesn't react either. -->
-            <Button Content="Tanılama Günlüğünü Göster" Click="ShowDiagLog_Click" Margin="0,14,0,0" Height="28"/>
+            <Button Content="Tanılama Günlüğünü Göster" Style="{StaticResource OutlineButton}" Click="ShowDiagLog_Click" Margin="0,14,0,0"/>
         </StackPanel>
     </Grid>
 </Window>
