@@ -24,7 +24,9 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - name: Restore Core + Tests
-        run: dotnet restore src/PacsCdTransfer.Core/PacsCdTransfer.Core.csproj test/PacsCdTransfer.Core.Tests/PacsCdTransfer.Core.Tests.csproj
+        run: |
+          dotnet restore src/PacsCdTransfer.Core/PacsCdTransfer.Core.csproj
+          dotnet restore test/PacsCdTransfer.Core.Tests/PacsCdTransfer.Core.Tests.csproj
       - name: Build Core
         run: dotnet build src/PacsCdTransfer.Core/PacsCdTransfer.Core.csproj --no-restore -c Release
       - name: Run tests (real DICOM network round-trips against an in-process SCP)
