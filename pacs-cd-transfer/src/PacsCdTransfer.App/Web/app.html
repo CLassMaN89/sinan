@@ -103,11 +103,10 @@
   .review-sim.on{ background:var(--danger-bg); border-color:var(--danger-line); color:var(--danger); }
   .review-note{margin-left:auto; color:var(--text-lo); font-size:11px;}
 
-  .stage{ flex:1; min-height:0; padding:clamp(8px,2vh,26px) clamp(8px,2vw,18px); display:flex; justify-content:center; align-items:stretch; }
+  .stage{ flex:1; min-height:0; display:flex; justify-content:center; align-items:stretch; }
   .window{
-    width:100%; max-width:1240px; background:var(--surface);
-    border:1px solid var(--border); border-radius:var(--radius-lg);
-    box-shadow:var(--shadow); overflow:hidden;
+    width:100%; background:var(--surface);
+    overflow:hidden;
     display:flex; flex-direction:row; min-height:0;
   }
   .screen-stack{ flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; }
@@ -923,21 +922,6 @@
   .settings-saved-msg svg{ width:14px; height:14px; }
 </style>
 
-<div class="review-bar">
-  <span class="lbl">PacsCD Transfer — Tasarım Önizleme</span>
-  <div class="review-tabs">
-    <button class="on" data-screen="login">1 · Giriş</button>
-    <button data-screen="home">2 · Ana Sayfa</button>
-    <button data-screen="patients">3 · Hasta Listesi</button>
-    <button data-screen="detail">4 · CD Detayı</button>
-    <button data-screen="query">5 · Sorgu/Getir</button>
-  </div>
-  <button class="review-sim" onclick="simulateInsertCD()">💿 CD tak (algılama animasyonu)</button>
-  <button class="review-sim" id="cdErrSimBtn" onclick="toggleCdErrSim(this)">💿 CD hasar simülasyonu</button>
-  <button class="review-sim" id="failSimBtn" onclick="toggleFailSim(this)">🎲 Gönderim sonucu (demo)</button>
-  <span class="review-note">Pencereyi yeniden boyutlandırıp deneyin — sayfa kaymaz</span>
-</div>
-
 <div class="stage">
 <div class="window">
 
@@ -1073,17 +1057,17 @@
           <div class="drive-empty-ic"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/></svg></div>
           <div class="dt">Sürücüde CD yok</div>
           <div class="ds">Bir hasta CD'si taktığınızda otomatik olarak algılanacak ve burada görünecek.</div>
-          <div class="drive-actions"><button class="btn btn-outline btn-sm"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11A8 8 0 1 0 18.6 16"/><path d="M20 5v6h-6"/></svg>Sürücüleri Yeniden Tara</button></div>
+          <div class="drive-actions"><button class="btn btn-outline btn-sm" onclick="nativeScanDrives()"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11A8 8 0 1 0 18.6 16"/><path d="M20 5v6h-6"/></svg>Sürücüleri Yeniden Tara</button></div>
         </div>
 
         <!-- Detected state: CD found -->
         <div class="drive-panel active" id="drivePanelFound" style="display:none;">
           <div class="drive-disc"></div>
-          <div class="dt">CD algılandı — Sürücü (D:)</div>
-          <div class="ds">DICOMDIR bulundu · 4 hasta · 18 seri · 921 görüntü. Devam etmek için içeriği tarayın.</div>
+          <div class="dt" id="drivePanelFoundTitle">CD algılandı</div>
+          <div class="ds" id="drivePanelFoundDesc">Devam etmek için içeriği tarayın.</div>
           <div class="drive-actions">
             <button class="btn btn-primary" onclick="startLoad('cd')"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg>CD İçeriğini Aç</button>
-            <button class="btn btn-outline" onclick="resetDrive()"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11A8 8 0 1 0 18.6 16"/><path d="M20 5v6h-6"/></svg>Sürücüyü Yenile</button>
+            <button class="btn btn-outline" onclick="nativeScanDrives()"><svg class="ic" viewBox="0 0 24 24"><path d="M20 11A8 8 0 1 0 18.6 16"/><path d="M20 5v6h-6"/></svg>Sürücüyü Yenile</button>
           </div>
 
           <!-- lightweight inline strip — replaces a blocking dialog once the CD has been read -->
@@ -1236,7 +1220,7 @@
           <thead>
             <tr><th style="width:30px;"><input class="chk" type="checkbox" onclick="toggleAllPlistRows(this)" /></th><th>Hasta</th><th>Dosya No</th><th>TC</th><th>Accession No</th><th>Modalite</th><th>Seri / Görüntü</th><th>Çekim Tarihi</th><th>Hastane</th><th></th></tr>
           </thead>
-          <tbody>
+          <tbody id="plistBody">
             <tr onclick="onPlistRowClick(event)" data-name="Demir Arifhan Ahmet" data-init="DA" data-dosya="3875285" data-tc="48169961374" data-acc="QKZ505568040" data-tarih="13.08.2026" data-mod="CT" data-seri="22 / 428">
               <td onclick="event.stopPropagation()"><input class="chk plist-row-chk" type="checkbox" onchange="updatePlistSelection()" /></td>
               <td class="pname"><div class="row"><div class="av">DA</div>Demir Arifhan Ahmet</div></td>
@@ -2869,9 +2853,23 @@
     document.getElementById('loadVeil').classList.remove('on');
   }
   var loadSourceKind = 'cd';
-  function startLoad(kind){
+  var loadSourcePath = null;
+  window.__realStudies = null;
+
+  async function startLoad(kind){
     loadSourceKind = kind || 'cd';
     var isFolder = loadSourceKind === 'folder';
+
+    if(hasNative){
+      if(isFolder){
+        var picked = await nativeCall('pickFolder');
+        if(!picked || !picked.ok) return;
+        loadSourcePath = picked.path;
+      }else{
+        loadSourcePath = window.__detectedDrive || null;
+        if(!loadSourcePath) return;
+      }
+    }
 
     var veil = document.getElementById('loadVeil');
     var scanEl = document.getElementById('loadScanState');
@@ -2914,8 +2912,16 @@
       for(var i=stages.length-1;i>=0;i--){ if(p>=stages[i][0]){ stage.textContent = stages[i][1]; break; } }
 
       if(p >= 100){
-        setTimeout(function(){
+        setTimeout(async function(){
           fill.style.width = '0%'; pct.textContent = '%0'; files.textContent = '0 / 921 dosya';
+
+          if(hasNative && loadSourcePath){
+            var res = await nativeCall('readSource', { path: loadSourcePath });
+            if(res && res.ok){
+              window.__realStudies = res.studies;
+              renderPatientRows(res.studies);
+            }
+          }
           veil.classList.remove('on');
 
           if(isFolder){
@@ -2935,6 +2941,55 @@
         }, 350);
       }
     }, 160);
+  }
+
+  async function nativeScanDrives(){
+    if(!hasNative) return;
+    var res = await nativeCall('scanDrives');
+    var empty = document.getElementById('drivePanelEmpty');
+    var found = document.getElementById('drivePanelFound');
+    if(res && res.ok && res.drives && res.drives.length){
+      window.__detectedDrive = res.drives[0];
+      document.getElementById('drivePanelFoundTitle').textContent = 'CD algılandı — ' + res.drives[0];
+      document.getElementById('drivePanelFoundDesc').textContent = 'Devam etmek için içeriği tarayın.';
+      empty.style.display = 'none';
+      found.style.display = 'flex';
+    }else{
+      window.__detectedDrive = null;
+      found.style.display = 'none';
+      empty.style.display = 'flex';
+    }
+  }
+
+  function renderPatientRows(studies){
+    var body = document.getElementById('plistBody');
+    if(!body) return;
+    body.innerHTML = '';
+    studies.forEach(function(s){
+      var tr = document.createElement('tr');
+      tr.onclick = function(ev){ onPlistRowClick(ev); };
+      tr.dataset.studyUid = s.studyUid;
+      tr.dataset.name = s.patientName;
+      tr.dataset.init = (s.patientName || '?').split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
+      tr.dataset.dosya = s.patientId;
+      tr.dataset.tc = s.tcKimlikNo || '';
+      tr.dataset.acc = s.accessionNumber || '';
+      tr.dataset.tarih = s.studyDate || '';
+      tr.dataset.mod = s.modality || '';
+      tr.dataset.seri = s.seriesCount + ' / ' + s.instanceCount;
+      tr.innerHTML =
+        '<td onclick="event.stopPropagation()"><input class="chk plist-row-chk" type="checkbox" onchange="updatePlistSelection()" /></td>' +
+        '<td class="pname"><div class="row"><div class="av">' + tr.dataset.init + '</div>' + s.patientName + '</div></td>' +
+        '<td>' + s.patientId + '</td><td>' + (s.tcKimlikNo || '—') + '</td><td>' + (s.accessionNumber || '—') + '</td>' +
+        '<td><span class="modtag">' + (s.modality || '?') + '</span></td><td>' + s.seriesCount + ' / ' + s.instanceCount + '</td>' +
+        '<td>' + (s.studyDate || '—') + '</td><td>' + (s.institutionName || '—') + '</td>' +
+        '<td class="row-arrow"><svg class="ic" width="15" height="15" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></td>';
+      body.appendChild(tr);
+    });
+  }
+
+  if(hasNative){
+    document.addEventListener('DOMContentLoaded', function(){ nativeScanDrives(); });
   }
 
   /* ---- PACS transfer progress (per-series outcome) ---- */
