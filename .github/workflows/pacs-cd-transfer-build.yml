@@ -72,8 +72,11 @@ jobs:
           -p:EnableCompressionInSingleFile=true
           -o publish/win-x64
 
-      - name: Upload portable exe
+      # The UI is now WebView2-hosted (loads Web/app.html verbatim for pixel-identical
+      # rendering vs. the mockup), so the portable build is the exe plus WebView2Loader.dll
+      # and the Web/ folder next to it — still just "unzip and run", no installer.
+      - name: Upload portable build
         uses: actions/upload-artifact@v4
         with:
           name: PacsCdTransfer-portable-win-x64
-          path: pacs-cd-transfer/publish/win-x64/PacsCdTransfer.exe
+          path: pacs-cd-transfer/publish/win-x64/

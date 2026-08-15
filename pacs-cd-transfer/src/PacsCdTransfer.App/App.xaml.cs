@@ -78,17 +78,8 @@ public partial class App : Application
                 "Başlatma Hatası", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
-        DiagLog.Write("RunStartup: showing login window");
-        var login = new Views.LoginWindow();
-        var ok = login.ShowDialog();
-        DiagLog.Write("RunStartup: login window closed, DialogResult=" + ok);
-        if (ok != true)
-        {
-            DiagLog.Write("RunStartup: shutting down (login not confirmed)");
-            Shutdown();
-            return;
-        }
-
+        // Login now happens inside the WebView2-hosted page itself (screen-login in app.html),
+        // not a separate native dialog — the mockup already has a login screen.
         DiagLog.Write("RunStartup: constructing MainWindow");
         var main = new Views.MainWindow();
         MainWindow = main;
