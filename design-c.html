@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>SK Viewer PACS — Karşılaştırma 2 · Ayraçlı Liste</title>
+<title>SK Viewer PACS — Tasarım C · Klinik HUD</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   :root{
@@ -19,13 +19,17 @@
     --text-md:#8f96a1;
     --text-lo:#5b6169;
 
-    --accent:#c2b280;        /* sıcak açık kum tonu — grayscale'de orta-açık gri olarak belirgin */
-    --accent-dim:#8a7c54;
-    --accent-line:#6e6242;
-    --accent-bg:rgba(194,178,128,0.12);
+    --accent:#4ee6a8;        /* fosfor yeşili — klinik HUD karakteri */
+    --accent-dim:#2c9c6f;
+    --accent-line:#2c9c6f;
+    --accent-bg:rgba(78,230,168,0.08);
+    --accent-glow:rgba(78,230,168,0.45);
 
-    --ok:#7fae87;
-    --ok-bg:rgba(127,174,135,0.14);
+    --ok:#4ee6a8;
+    --ok-bg:rgba(78,230,168,0.10);
+    --warn:#e6c34e;
+    --warn-bg:rgba(230,195,78,0.10);
+    --mono: "SF Mono", "Consolas", "Menlo", monospace;
 
     --radius:6px;
     --font: -apple-system, "Segoe UI", Roboto, Inter, Arial, sans-serif;
@@ -34,29 +38,71 @@
   html,body{ margin:0; padding:0; height:100%; background:var(--bg-0); color:var(--text-hi); font-family:var(--font); font-size:13px; -webkit-font-smoothing:antialiased; }
   .app{ display:flex; flex-direction:column; height:100vh; min-height:640px; border:1px solid var(--line-soft); }
 
-  /* ===== 1. HASTA BİLGİ ŞERİDİ — "AYRAÇLI LİSTE" (sade, ince çizgilerle bölünmüş) ===== */
+  /* ===== 1. HASTA BİLGİ BAŞLIĞI — "KLİNİK HUD" (köşe braketli, fosfor yeşili, 76px) ===== */
+  .strip-wrap{ padding:8px 8px 0; background:var(--bg-0); flex-shrink:0; }
   .patient-strip{
-    height:50px; display:flex; align-items:center;
-    background:var(--bg-1); border-bottom:1px solid var(--line);
-    padding:0 18px; flex-shrink:0; white-space:nowrap;
+    height:76px; position:relative;
+    display:flex; align-items:center;
+    background:#0a0d0c;
+    border:1px solid var(--accent-line);
+    padding:0 22px; white-space:nowrap;
+    box-shadow:0 0 0 1px rgba(78,230,168,0.06), inset 0 0 30px rgba(78,230,168,0.03);
   }
-  .brand{ display:flex; align-items:center; gap:8px; padding-right:20px; flex-shrink:0; }
-  .brand .mark{ width:24px; height:24px; border-radius:50%; background:transparent; border:1.5px solid var(--accent); display:flex; align-items:center; justify-content:center; color:var(--accent); font-weight:700; font-size:10px; }
-  .brand .name{ font-weight:700; font-size:11px; color:var(--text-md); letter-spacing:1px; }
+  .patient-strip::before, .patient-strip::after,
+  .corner-br::before, .corner-br::after{ content:""; position:absolute; width:14px; height:14px; border-color:var(--accent); }
+  .patient-strip::before{ top:-1px; left:-1px; border-top:2px solid var(--accent); border-left:2px solid var(--accent); }
+  .patient-strip::after{ top:-1px; right:-1px; border-top:2px solid var(--accent); border-right:2px solid var(--accent); }
+  .corner-br{ position:absolute; inset:0; pointer-events:none; }
+  .corner-br::before{ bottom:-1px; left:-1px; top:auto; border-bottom:2px solid var(--accent); border-left:2px solid var(--accent); border-top:none; }
+  .corner-br::after{ bottom:-1px; right:-1px; top:auto; border-bottom:2px solid var(--accent); border-right:2px solid var(--accent); border-top:none; }
 
-  .fields{ display:flex; align-items:center; flex:1; overflow:hidden; }
-  .fld{ display:flex; flex-direction:column; gap:3px; flex-shrink:0; padding:0 18px; border-left:1px solid var(--line-soft); }
-  .fld:first-of-type{ border-left:1px solid var(--line); padding-left:20px; }
-  .fld .k{ font-size:8.5px; color:var(--text-lo); text-transform:uppercase; letter-spacing:.6px; }
-  .fld .v{ font-size:12px; color:var(--text-hi); font-weight:500; }
-  .fld.patient{ padding-left:0; border-left:none; }
-  .fld.patient .v{ color:var(--text-hi); font-size:15px; font-weight:700; letter-spacing:.2px; }
-  .fld .v.strong{ color:var(--text-hi); }
+  .brand{ display:none; }
+
+  .id-block{
+    display:flex; align-items:center; gap:12px;
+    padding-right:22px; margin-right:22px;
+    border-right:1px dashed var(--accent-line);
+    flex-shrink:0;
+  }
+  .id-block .avatar{
+    width:40px; height:40px; border:1.5px solid var(--accent); color:var(--accent);
+    font-family:var(--mono); font-weight:700; font-size:14px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 10px var(--accent-glow);
+    flex-shrink:0;
+  }
+  .id-block .txt .pname{ font-size:16px; font-weight:700; color:var(--text-hi); letter-spacing:.6px; }
+  .id-block .txt .psub{ font-family:var(--mono); font-size:10px; color:var(--accent); margin-top:5px; letter-spacing:.3px; }
+
+  .fields{ display:flex; align-items:center; gap:20px; flex:1; overflow:hidden; }
+  .fld{ display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
+  .fld .k{ font-size:8px; color:var(--text-lo); text-transform:uppercase; letter-spacing:1px; }
+  .fld .v{ font-family:var(--mono); font-size:12px; color:var(--text-hi); font-weight:500; }
+  .fld.patient{ display:none; }
+  .fld .v.strong{ color:var(--accent); }
 
   .mod-chip{
-    padding:4px 4px 6px; font-size:11px; font-weight:700; letter-spacing:1px;
-    background:none; color:var(--accent); border:none; border-bottom:2px solid var(--accent); flex-shrink:0;
+    font-family:var(--mono);
+    padding:6px 14px; font-size:11px; font-weight:700; letter-spacing:1.5px;
+    background:var(--accent-bg); color:var(--accent); border:1px solid var(--accent); flex-shrink:0;
+    box-shadow:0 0 12px var(--accent-glow);
   }
+
+  /* ===== SAĞ HASTA LİSTESİ — "HUD KUYRUK" ===== */
+  .plist{ width:246px; flex-shrink:0; background:#0a0d0c; border-left:1px solid var(--accent-line); display:flex; flex-direction:column; min-height:0; }
+  .plist-head{ padding:12px 16px 8px; border-bottom:1px dashed var(--accent-line); }
+  .plist-head .t{ font-family:var(--mono); font-size:10.5px; font-weight:700; color:var(--accent); letter-spacing:1.5px; }
+  .plist-head .s{ font-size:9.5px; color:var(--text-lo); margin-top:3px; }
+  .plist-body{ flex:1; overflow-y:auto; padding:10px 14px; position:relative; }
+  .plist-body::before{ content:""; position:absolute; left:20px; top:10px; bottom:10px; width:1px; background:var(--accent-line); }
+  .prow{ position:relative; padding-left:20px; margin-bottom:14px; }
+  .prow::before{ content:""; position:absolute; left:-4px; top:3px; width:9px; height:9px; border-radius:50%; background:#0a0d0c; border:2px solid var(--accent-dim); }
+  .prow.active::before{ background:var(--accent); box-shadow:0 0 8px var(--accent-glow); border-color:var(--accent); }
+  .prow .pn{ font-size:11.5px; font-weight:600; color:var(--text-hi); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .prow.active .pn{ color:var(--accent); }
+  .prow .pm{ font-family:var(--mono); font-size:9px; color:var(--text-lo); margin-top:3px; }
+  .prow .stat{ display:none; }
+  .prow .av{ display:none; }
 
   /* ===== 2. ARAÇ ÇUBUĞU ===== */
   .toolbar{ display:flex; align-items:center; gap:2px; height:46px; background:var(--bg-1); border-bottom:1px solid var(--line); padding:0 8px; flex-shrink:0; overflow-x:auto; }
@@ -117,21 +163,25 @@
 <body>
 <div class="app">
 
+  <div class="strip-wrap">
   <div class="patient-strip">
-    <div class="brand"><div class="mark">SK</div><div class="name">VIEWER PACS</div></div>
-    <div class="fields">
-      <div class="fld"><span class="k">Tetkik</span><span class="v">BT, TORAKS, KONTRASTLI</span></div>
-      <div class="fld patient"><span class="k">Hasta Adı</span><span class="v strong">SAMIKIRAN RAMAZAN</span></div>
-      <div class="fld"><span class="k">Hasta TC</span><span class="v">58237416354</span></div>
-      <div class="fld"><span class="k">Doğum</span><span class="v">01.07.1964</span></div>
-      <div class="fld"><span class="k">Çekim Tarihi</span><span class="v">08.08.2026 00:57</span></div>
-      <div class="fld"><span class="k">Modalite</span><span class="v">CT</span></div>
-      <div class="fld"><span class="k">Acc No</span><span class="v">QKZ505048505</span></div>
-      <div class="fld"><span class="k">Seri</span><span class="v">3/6</span></div>
-      <div class="fld"><span class="k">Görüntü</span><span class="v">155/737</span></div>
-      <div class="fld"><span class="k">WL/WW</span><span class="v">40/400</span></div>
+    <div class="corner-br"></div>
+    <div class="id-block">
+      <div class="avatar">SR</div>
+      <div class="txt">
+        <div class="pname">SAMIKIRAN RAMAZAN</div>
+        <div class="psub">TC:58237416354 · DOB:01.07.1964</div>
+      </div>
     </div>
-    <div class="mod-chip">ORIGINAL</div>
+    <div class="fields">
+      <div class="fld"><span class="k">Tetkik</span><span class="v">BT_TORAKS_KONTRASTLI</span></div>
+      <div class="fld"><span class="k">Çekim</span><span class="v">08.08.2026·00:57</span></div>
+      <div class="fld"><span class="k">Acc No</span><span class="v">QKZ505048505</span></div>
+      <div class="fld"><span class="k">Seri/Görüntü</span><span class="v strong">003/006·155/737</span></div>
+      <div class="fld"><span class="k">WL/WW</span><span class="v">040/400</span></div>
+    </div>
+    <div class="mod-chip">CT::ORIGINAL</div>
+  </div>
   </div>
 
   <div class="toolbar">
@@ -217,6 +267,39 @@
         <div class="mpr-slider"><div class="fill"></div></div>
         <div class="mpr-count">155 / 737</div>
         <div class="net-chip"><span class="dot"></span>AĞ BAĞLI · 10.215.116.172</div>
+      </div>
+    </div>
+
+    <div class="plist">
+      <div class="plist-head">
+        <div class="t">// HASTA_KUYRUĞU</div>
+        <div class="s">Bugün · 14 tetkik</div>
+      </div>
+      <div class="plist-body">
+        <div class="prow active">
+          <div class="pn">Samıkıran Ramazan</div>
+          <div class="pm">BT_TORAKS · 00:57</div>
+        </div>
+        <div class="prow">
+          <div class="pn">Arifhan Ahmet Demir</div>
+          <div class="pm">BT_BATIN · 11:25</div>
+        </div>
+        <div class="prow">
+          <div class="pn">Mehmet Yılmaz</div>
+          <div class="pm">MR_BEYIN · 09:40</div>
+        </div>
+        <div class="prow">
+          <div class="pn">Elif Kaya</div>
+          <div class="pm">BT_TORAKS · 12:10</div>
+        </div>
+        <div class="prow">
+          <div class="pn">Cemal Turan</div>
+          <div class="pm">MR_LOMBER · 08:15</div>
+        </div>
+        <div class="prow">
+          <div class="pn">Hatice Şahin</div>
+          <div class="pm">BT_KRANIAL · 13:02</div>
+        </div>
       </div>
     </div>
   </div>
