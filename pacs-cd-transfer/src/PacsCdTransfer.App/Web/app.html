@@ -1481,10 +1481,10 @@
         </div>
         <div class="card-body">
           <div class="form-row">
-            <div class="fgroup"><label>Hasta Adı Soyadı</label><input type="text" placeholder="Ad Soyad" /></div>
-            <div class="fgroup"><label>TC Kimlik No</label><input type="text" placeholder="11 haneli TC" /></div>
-            <div class="fgroup"><label>Dosya No / Hasta ID</label><input type="text" placeholder="Dosya No" /></div>
-            <div class="fgroup"><label>Accession No</label><input type="text" placeholder="Erişim No" /></div>
+            <div class="fgroup"><label>Hasta Adı Soyadı</label><input type="text" id="qName" placeholder="Ad Soyad" /></div>
+            <div class="fgroup"><label>TC Kimlik No</label><input type="text" id="qTc" placeholder="11 haneli TC" /></div>
+            <div class="fgroup"><label>Dosya No / Hasta ID</label><input type="text" id="qDosya" placeholder="Dosya No" /></div>
+            <div class="fgroup"><label>Accession No</label><input type="text" id="qAcc" placeholder="Erişim No" /></div>
           </div>
 
           <div class="query-toolbar">
@@ -2158,10 +2158,43 @@
   updateSeriesCount();
 
   /* ---- PACS Query/Retrieve module ---- */
-  function runQuery(){
+  async function runQuery(){
     var rows = document.getElementById('queryRows');
     rows.style.opacity = '.35';
+
+    if(hasNative){
+      var srcAe = document.getElementById('querySrcSelect').value;
+      var res = await nativeCall('findStudies', {
+        aeTitle: srcAe,
+        patientName: document.getElementById('qName').value.trim(),
+        patientId: document.getElementById('qDosya').value.trim(),
+        accessionNumber: document.getElementById('qAcc').value.trim()
+      });
+      rows.style.opacity = '1';
+      if(res && res.ok){
+        renderQueryRows(res.studies);
+        var countEl = document.getElementById('queryResultCount');
+        if(countEl) countEl.textContent = res.studies.length + ' tetkik bulundu';
+      }
+      return;
+    }
+
     setTimeout(function(){ rows.style.opacity = '1'; }, 420);
+  }
+
+  function renderQueryRows(studies){
+    var rows = document.getElementById('queryRows');
+    rows.innerHTML = studies.map(function(s){
+      var init = (s.patientName || '?').split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
+      return '<tr data-series="' + s.seriesCount + '" data-study-uid="' + s.studyUid + '">' +
+        '<td><button type="button" class="qexpand-btn" onclick="toggleQueryRow(this)" title="Serileri göster"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button></td>' +
+        '<td class="pname"><div class="row"><div class="av">' + init + '</div>' + s.patientName + '</div></td>' +
+        '<td>' + s.patientId + '</td><td>' + (s.studyDate || '—') + '</td><td><span class="modtag">' + (s.modality || '?') + '</span></td>' +
+        '<td>' + s.seriesCount + '</td><td>' + (s.institutionName || '—') + '</td>' +
+        '<td class="qstatus"><span class="pill pill-muted">Yalnızca PACS\'te</span></td>' +
+        '<td class="qaction-cell"><button type="button" class="btn btn-outline btn-sm qdl-btn" onclick="downloadRow(this)"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v13M7 12l5 5 5-5"/><path d="M4 19.5h16"/></svg>İndir</button></td>' +
+        '</tr>';
+    }).join('');
   }
   function changePage(dir){
     var btns = Array.prototype.slice.call(document.querySelectorAll('.pagination .page-btn[data-page]'));
@@ -2250,6 +2283,39 @@
         '<span class="qdl-pct">%0</span>' +
       '</div>';
 
+    function finishDownload(ok, errorMsg){
+      if(ok){
+        statusCell.innerHTML = '<span class="pill pill-ok">Yerelde mevcut</span>';
+        var actionCell = btn.closest('td');
+        actionCell.innerHTML =
+          '<div class="qaction-group">' +
+            '<span class="qdone-badge" title="İndirildi"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></span>' +
+            '<button type="button" class="qview-btn" onclick="openQueryViewer(this)" title="Görüntüle"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>' +
+            '<button type="button" class="qburn-btn" onclick="burnToCd(this)" title="CD\'ye Yaz"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="0.6" fill="currentColor"/></svg></button>' +
+          '</div>';
+      }else{
+        statusCell.innerHTML = '<span class="pill" style="background:var(--danger-bg); color:var(--danger); border:1px solid var(--danger-line);">' + (errorMsg || 'İndirilemedi') + '</span>';
+        btn.classList.remove('busy'); btn.disabled = false; btn.innerHTML =
+          '<svg class="ic" viewBox="0 0 24 24"><path d="M12 3v13M7 12l5 5 5-5"/><path d="M4 19.5h16"/></svg>İndir';
+      }
+    }
+
+    if(hasNative && tr.dataset.studyUid){
+      var srcAe = document.getElementById('querySrcSelect').value;
+      var p2 = 0;
+      var fillEl2 = statusCell.querySelector('.qdl-bar-fill'), pctEl2 = statusCell.querySelector('.qdl-pct');
+      var realTimer = setInterval(function(){
+        p2 = Math.min(p2 + Math.random()*5 + 2, 90);
+        if(fillEl2) fillEl2.style.width = p2 + '%';
+        if(pctEl2) pctEl2.textContent = '%' + Math.round(p2);
+      }, 200);
+      nativeCall('retrieveStudy', { studyUid: tr.dataset.studyUid, aeTitle: srcAe }).then(function(res){
+        clearInterval(realTimer);
+        finishDownload(!!(res && res.ok), res ? res.error : null);
+      });
+      return;
+    }
+
     var p = 0;
     var t = setInterval(function(){
       p += Math.random() * 6 + 2.5;
@@ -2259,16 +2325,7 @@
       if(fillEl) fillEl.style.width = p + '%';
       if(pctEl) pctEl.textContent = '%' + Math.round(p);
       if(p >= 100){
-        setTimeout(function(){
-          statusCell.innerHTML = '<span class="pill pill-ok">Yerelde mevcut</span>';
-          var actionCell = btn.closest('td');
-          actionCell.innerHTML =
-            '<div class="qaction-group">' +
-              '<span class="qdone-badge" title="İndirildi"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></span>' +
-              '<button type="button" class="qview-btn" onclick="openQueryViewer(this)" title="Görüntüle"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>' +
-              '<button type="button" class="qburn-btn" onclick="burnToCd(this)" title="CD\'ye Yaz"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="0.6" fill="currentColor"/></svg></button>' +
-            '</div>';
-        }, 300);
+        setTimeout(function(){ finishDownload(true); }, 300);
       }
     }, 260);
   }
@@ -2372,7 +2429,7 @@
       '<div class="log-msg">' + msg + '</div></div>';
     list.insertBefore(row, list.firstChild);
   }
-  function testPacsConnection(btn){
+  async function testPacsConnection(btn){
     var row = btn.closest('.dest-row');
     var result = row ? row.querySelector('.dest-test-result') : null;
     var ae = row ? row.dataset.ae : 'HOSPITAL_PACS';
@@ -2381,6 +2438,17 @@
     if(!result) return;
     result.textContent = 'Test ediliyor…';
     result.style.color = 'var(--text-lo)';
+
+    if(hasNative){
+      var res = await nativeCall('testConnection', { aeTitle: ae });
+      if(res && res.ok){
+        result.innerHTML = '<span style="color:var(--ok);">✓ Bağlantı başarılı</span>';
+      }else{
+        result.innerHTML = '<span style="color:var(--danger);">✕ Bağlantı başarısız</span>';
+      }
+      return;
+    }
+
     setTimeout(function(){
       var ok = !forceFail;
       if(ok){
@@ -2651,25 +2719,34 @@
   window.cdQueue = [];
   window.cdQueueIndex = 0;
 
+  function rowToQueueItem(tr){
+    var realStudy = (window.__realStudies || []).find(function(s){ return s.studyUid === tr.dataset.studyUid; });
+    return {
+      key: tr.dataset.dosya + '|' + tr.dataset.tarih,
+      studyUid: tr.dataset.studyUid || null,
+      name: tr.dataset.name, init: tr.dataset.init, dosya: tr.dataset.dosya,
+      tc: tr.dataset.tc || '', acc: tr.dataset.acc || '', mod: tr.dataset.mod,
+      tarih: tr.dataset.tarih,
+      seriCount: parseInt((tr.dataset.seri || '1').split('/')[0], 10) || 1,
+      series: realStudy ? realStudy.series : null,
+      sent: false
+    };
+  }
+
   function onPlistRowClick(ev){
-    window.cdQueue = [];
+    var tr = ev.currentTarget || ev.target.closest('tr');
+    if(!tr) return;
+    window.cdQueue = [rowToQueueItem(tr)];
+    window.cdQueueIndex = 0;
     document.getElementById('cdWorklist').style.display = 'none';
+    loadQueuePatient(0);
     showScreen('detail');
   }
 
   function openQueueInDetail(){
     var checkedRows = Array.prototype.slice.call(document.querySelectorAll('.plist-row-chk:checked')).map(function(cb){ return cb.closest('tr'); });
     if(!checkedRows.length) return;
-    window.cdQueue = checkedRows.map(function(tr){
-      return {
-        key: tr.dataset.dosya + '|' + tr.dataset.tarih,
-        name: tr.dataset.name, init: tr.dataset.init, dosya: tr.dataset.dosya,
-        tc: tr.dataset.tc || '', acc: tr.dataset.acc || '', mod: tr.dataset.mod,
-        tarih: tr.dataset.tarih,
-        seriCount: parseInt((tr.dataset.seri || '1').split('/')[0], 10) || 1,
-        sent: false
-      };
-    });
+    window.cdQueue = checkedRows.map(rowToQueueItem);
     window.cdQueueIndex = 0;
     document.getElementById('cdWorklist').style.display = window.cdQueue.length > 1 ? 'block' : 'none';
     loadQueuePatient(0);
@@ -2758,13 +2835,16 @@
     sendNext(0);
   }
 
-  function buildSeriesThumbs(count){
+  function buildSeriesThumbs(count, realSeries){
     var strip = document.querySelector('#screen-detail .series-strip');
     if(!strip) return;
     var html = '';
-    for(var i = 1; i <= count; i++){
+    var n = realSeries ? realSeries.length : count;
+    for(var i = 1; i <= n; i++){
+      var uid = realSeries ? realSeries[i-1].seriesUid : '';
+      var label = realSeries ? (realSeries[i-1].description || realSeries[i-1].modality || ('Seri ' + i)) : ('Seri ' + i);
       html +=
-        '<div class="series-thumb on" onclick="toggleSeries(this)" title="Seri ' + i + ' — seçili"><div class="disc"></div>' +
+        '<div class="series-thumb on" data-series-uid="' + uid + '" onclick="toggleSeries(this)" title="' + label + ' — seçili"><div class="disc"></div>' +
         '<span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5 11-11"/></svg></span>' +
         '<span class="n">S' + i + '</span><span class="result"></span></div>';
     }
@@ -2796,7 +2876,7 @@
     var banner = document.getElementById('resultBanner');
     if(banner){ banner.className = 'result-banner'; banner.innerHTML = ''; }
 
-    buildSeriesThumbs(p.seriCount);
+    buildSeriesThumbs(p.seriCount, p.series);
     renderWorklist();
   }
   function toggleAllPlistRows(headCb){
@@ -2988,8 +3068,49 @@
     });
   }
 
+  async function loadRealPacsConfig(){
+    if(!hasNative) return;
+    var destRes = await nativeCall('getDestinations');
+    if(destRes && destRes.ok){
+      var destList = document.getElementById('pacsDestList');
+      destList.innerHTML = destRes.destinations.map(function(d){
+        return '<div class="dest-row" data-ae="' + d.aeTitle + '" data-host="' + d.host + '" data-port="' + d.port + '">' +
+          '<div class="dest-main"><b>' + d.aeTitle + '</b><span class="dest-meta">' + d.host + ' : ' + d.port + '</span></div>' +
+          '<div class="dest-actions">' +
+          (d.isDefault ? '<span class="pill pill-ok">Varsayılan</span>' : '<button class="btn btn-outline btn-sm" onclick="setDefaultPacs(this)">Varsayılan Yap</button>') +
+          '<button class="btn btn-outline btn-sm" onclick="testPacsConnection(this)">Test</button>' +
+          '<span class="dest-test-result"></span>' +
+          '<button class="dest-edit-btn" onclick="startEditDestRow(this)" title="Düzenle"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19z"/><path d="M13.5 6.5L17.5 10.5"/></svg></button>' +
+          '<button class="dest-del-btn" onclick="removeDestRow(this)" title="Sil"><svg class="ic" viewBox="0 0 24 24"><path d="M5 7h14M9 7V4.5h6V7M7 7l1 13h8l1-13"/></svg></button>' +
+          '</div></div>';
+      }).join('');
+      refreshPacsDestOptions();
+    }
+
+    var srcRes = await nativeCall('getSources');
+    if(srcRes && srcRes.ok){
+      var srcList = document.getElementById('pacsSrcList');
+      srcList.innerHTML = srcRes.sources.map(function(s){
+        return '<div class="dest-row" data-ae="' + s.aeTitle + '" data-host="' + s.host + '" data-port="' + s.port + '">' +
+          '<div class="dest-main"><b>' + s.aeTitle + '</b><span class="dest-meta">' + s.host + ' : ' + s.port + '</span></div>' +
+          '<div class="dest-actions">' +
+          '<select class="src-method"><option value="cmove"' + (s.retrieveMode==='cmove'?' selected':'') + '>C-MOVE</option><option value="cget"' + (s.retrieveMode==='cget'?' selected':'') + '>C-GET</option></select>' +
+          (s.isDefault ? '<span class="pill pill-ok">Varsayılan</span>' : '<button class="btn btn-outline btn-sm" onclick="setDefaultSrc(this)">Varsayılan Yap</button>') +
+          '<button class="btn btn-outline btn-sm" onclick="testPacsConnection(this)">Test</button>' +
+          '<span class="dest-test-result"></span>' +
+          '<button class="dest-edit-btn" onclick="startEditDestRow(this)" title="Düzenle"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19z"/><path d="M13.5 6.5L17.5 10.5"/></svg></button>' +
+          '<button class="dest-del-btn" onclick="removeSrcRow(this)" title="Sil"><svg class="ic" viewBox="0 0 24 24"><path d="M5 7h14M9 7V4.5h6V7M7 7l1 13h8l1-13"/></svg></button>' +
+          '</div></div>';
+      }).join('');
+      if(typeof refreshPacsSrcOptions === 'function') refreshPacsSrcOptions();
+    }
+  }
+
   if(hasNative){
-    document.addEventListener('DOMContentLoaded', function(){ nativeScanDrives(); });
+    document.addEventListener('DOMContentLoaded', function(){
+      nativeScanDrives();
+      loadRealPacsConfig();
+    });
   }
 
   /* ---- PACS transfer progress (per-series outcome) ---- */
@@ -3043,11 +3164,55 @@
     var files = document.getElementById('transferFiles');
     var total = thumbs.length * 75, p = 0;
     var simulateFailures = forceFail;
+    var queueItem = sentQueueIndex !== null ? window.cdQueue[sentQueueIndex] : null;
+    var isRealSend = hasNative && queueItem && queueItem.studyUid;
 
     function isViewingSameExam(){
       var onDetail = document.getElementById('screen-detail').classList.contains('on');
       if(!onDetail) return false;
       return sentQueueIndex === null || window.cdQueueIndex === sentQueueIndex;
+    }
+
+    function finishSend(failedNames){
+      toast.classList.remove('on'); fill.style.width='0%'; pct.textContent='%0'; files.textContent='0 / ' + total + ' görüntü';
+      var sameExam = isViewingSameExam();
+      applyTransferOutcome(failedNames, sameExam, thumbs, sentQueueIndex, sentPatientName, destName, banner, toast);
+    }
+
+    if(isRealSend){
+      var realPct = 0;
+      var realTimer = setInterval(function(){
+        realPct = Math.min(realPct + Math.random()*5 + 2, 90);
+        fill.style.width = realPct + '%'; pct.textContent = '%' + Math.round(realPct);
+        files.textContent = Math.round(total*realPct/100) + ' / ' + total + ' görüntü';
+      }, 160);
+
+      var seriesUids = thumbs.map(function(th){ return th.dataset.seriesUid; }).filter(Boolean);
+      nativeCall('sendStudy', {
+        studyUid: queueItem.studyUid,
+        seriesUids: seriesUids.length ? seriesUids : null,
+        patientName: document.getElementById('fldName') ? document.getElementById('fldName').value : queueItem.name,
+        tcKimlikNo: tcEl ? tcEl.value : queueItem.tc,
+        aeTitle: destName
+      }).then(function(res){
+        clearInterval(realTimer);
+        fill.style.width = '100%'; pct.textContent = '%100';
+        setTimeout(function(){
+          var failedNames = [];
+          thumbs.forEach(function(th){
+            markSeriesResult(th, !!(res && res.ok));
+            if(!(res && res.ok)) failedNames.push(th.querySelector('.n') ? th.querySelector('.n').textContent : '?');
+          });
+          if(!(res && res.ok) && res && res.error){
+            banner.className = 'result-banner fail';
+            banner.innerHTML =
+              '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>' +
+              '<div><b>Gönderilemedi</b>' + res.error + '</div>';
+          }
+          finishSend(failedNames);
+        }, 300);
+      });
+      return;
     }
 
     var t = setInterval(function(){
@@ -3067,62 +3232,65 @@
             markSeriesResult(th, ok);
             if(!ok) failedNames.push(th.querySelector('.n') ? th.querySelector('.n').textContent : '?');
           });
-          var sameExam = isViewingSameExam();
-
-          if(failedNames.length === 0){
-            addLogRow(true, 'CD Transfer — C-STORE', sentPatientName + ' (' + thumbs.length + ' seri) ' + destName + ' hedefine gönderildi.');
-            if(sentQueueIndex !== null){
-              window.cdQueue[sentQueueIndex].sending = false;
-              window.cdQueue[sentQueueIndex].sent = true;
-              renderWorklist();
-            }
-            if(sameExam){
-              setSendStatus('sent', 'Gönderildi');
-              banner.className = 'result-banner ok';
-              var nextTip = '';
-              if(sentQueueIndex !== null){
-                var nextIdx = window.cdQueue.findIndex(function(p){ return !p.sent; });
-                if(nextIdx !== -1){ nextTip = ' <button class="btn btn-outline btn-sm" onclick="loadQueuePatient(' + nextIdx + ')" style="margin-top:8px;">Sıradaki Hastaya Geç →</button>'; }
-                else{ nextTip = ' <div class="hint" style="display:block; margin-top:6px;">Seçtiğiniz tüm tetkikler gönderildi.</div>'; }
-              }
-              banner.innerHTML =
-                '<svg class="ic" viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg>' +
-                '<div><b>Gönderildi</b>Seçili ' + thumbs.length + ' seri ' + destName + ' hedefine başarıyla aktarıldı.' + nextTip + '</div>';
-            }
-          }else if(failedNames.length === thumbs.length){
-            addLogRow(false, 'CD Transfer — C-STORE', sentPatientName + ' gönderilemedi — PACS sunucusuna bağlanılamadı.');
-            if(sentQueueIndex !== null){
-              window.cdQueue[sentQueueIndex].sending = false;
-              renderWorklist();
-            }
-            if(sameExam){
-              setSendStatus('failed', 'Gönderilemedi');
-              banner.className = 'result-banner fail';
-              banner.innerHTML =
-                '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>' +
-                '<div><b>Gönderilemedi</b>PACS sunucusuna bağlanılamadı. Bağlantıyı kontrol edip tekrar deneyin.' +
-                '<div class="rb-actions"><button class="btn btn-outline btn-sm" onclick="retryFailedSeries()">Tekrar Dene</button></div></div>';
-            }
-          }else{
-            addLogRow(false, 'CD Transfer — C-STORE', sentPatientName + ' — ' + failedNames.length + '/' + thumbs.length + ' seri gönderilemedi.');
-            if(sentQueueIndex !== null){
-              window.cdQueue[sentQueueIndex].sending = false;
-              renderWorklist();
-            }
-            if(sameExam){
-              setSendStatus('partial', 'Kısmen Gönderildi');
-              banner.className = 'result-banner partial';
-              banner.innerHTML =
-                '<svg class="ic" viewBox="0 0 24 24"><path d="M12 8v5M12 16v.01"/><path d="M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>' +
-                '<div><b>Kısmen Gönderildi</b>' + (thumbs.length - failedNames.length) + ' seri gönderildi, gönderilemeyenler: ' +
-                '<span class="fail-list">' + failedNames.join(', ') + '</span>.' +
-                '<div class="rb-actions"><button class="btn btn-outline btn-sm" onclick="retryFailedSeries()">Yalnızca Başarısızları Tekrar Gönder</button></div></div>';
-            }
-          }
+          applyTransferOutcome(failedNames, isViewingSameExam(), thumbs, sentQueueIndex, sentPatientName, destName, banner, toast);
         }, 500);
       }
     }, 140);
   }
+
+  function applyTransferOutcome(failedNames, sameExam, thumbs, sentQueueIndex, sentPatientName, destName, banner, toast){
+    if(failedNames.length === 0){
+      addLogRow(true, 'CD Transfer — C-STORE', sentPatientName + ' (' + thumbs.length + ' seri) ' + destName + ' hedefine gönderildi.');
+      if(sentQueueIndex !== null){
+        window.cdQueue[sentQueueIndex].sending = false;
+        window.cdQueue[sentQueueIndex].sent = true;
+        renderWorklist();
+      }
+      if(sameExam){
+        setSendStatus('sent', 'Gönderildi');
+        banner.className = 'result-banner ok';
+        var nextTip = '';
+        if(sentQueueIndex !== null){
+          var nextIdx = window.cdQueue.findIndex(function(p){ return !p.sent; });
+          if(nextIdx !== -1){ nextTip = ' <button class="btn btn-outline btn-sm" onclick="loadQueuePatient(' + nextIdx + ')" style="margin-top:8px;">Sıradaki Hastaya Geç →</button>'; }
+          else{ nextTip = ' <div class="hint" style="display:block; margin-top:6px;">Seçtiğiniz tüm tetkikler gönderildi.</div>'; }
+        }
+        banner.innerHTML =
+          '<svg class="ic" viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg>' +
+          '<div><b>Gönderildi</b>Seçili ' + thumbs.length + ' seri ' + destName + ' hedefine başarıyla aktarıldı.' + nextTip + '</div>';
+      }
+    }else if(failedNames.length === thumbs.length){
+      addLogRow(false, 'CD Transfer — C-STORE', sentPatientName + ' gönderilemedi — PACS sunucusuna bağlanılamadı.');
+      if(sentQueueIndex !== null){
+        window.cdQueue[sentQueueIndex].sending = false;
+        renderWorklist();
+      }
+      if(sameExam){
+        setSendStatus('failed', 'Gönderilemedi');
+        banner.className = 'result-banner fail';
+        banner.innerHTML =
+          '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>' +
+          '<div><b>Gönderilemedi</b>PACS sunucusuna bağlanılamadı. Bağlantıyı kontrol edip tekrar deneyin.' +
+          '<div class="rb-actions"><button class="btn btn-outline btn-sm" onclick="retryFailedSeries()">Tekrar Dene</button></div></div>';
+      }
+    }else{
+      addLogRow(false, 'CD Transfer — C-STORE', sentPatientName + ' — ' + failedNames.length + '/' + thumbs.length + ' seri gönderilemedi.');
+      if(sentQueueIndex !== null){
+        window.cdQueue[sentQueueIndex].sending = false;
+        renderWorklist();
+      }
+      if(sameExam){
+        setSendStatus('partial', 'Kısmen Gönderildi');
+        banner.className = 'result-banner partial';
+        banner.innerHTML =
+          '<svg class="ic" viewBox="0 0 24 24"><path d="M12 8v5M12 16v.01"/><path d="M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>' +
+          '<div><b>Kısmen Gönderildi</b>' + (thumbs.length - failedNames.length) + ' seri gönderildi, gönderilemeyenler: ' +
+          '<span class="fail-list">' + failedNames.join(', ') + '</span>.' +
+          '<div class="rb-actions"><button class="btn btn-outline btn-sm" onclick="retryFailedSeries()">Yalnızca Başarısızları Tekrar Gönder</button></div></div>';
+      }
+    }
+  }
+
   function retryFailedSeries(){
     var failed = Array.prototype.slice.call(document.querySelectorAll('.series-thumb.sent-fail'));
     if(failed.length) startTransfer(failed);
