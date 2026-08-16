@@ -57,6 +57,8 @@ public sealed class WebBridge
             result = request.Action switch
             {
                 "login" => HandleLogin(request.Payload),
+                "logout" => HandleLogout(),
+                "changePassword" => HandleChangePassword(request.Payload),
                 "scanDrives" => HandleScanDrives(),
                 "pickFolder" => HandlePickFolder(),
                 "readSource" => await HandleReadSourceAsync(request.Payload),
@@ -109,6 +111,31 @@ public sealed class WebBridge
 
         _currentUser = user;
         return new { ok = true, username = user.Username, isAdmin = user.IsAdmin };
+    }
+
+    private object HandleLogout()
+    {
+        _currentUser = null;
+        return new { ok = true };
+    }
+
+    private object HandleChangePassword(JsonElement payload)
+    {
+        if (_currentUser is null) return new { ok = false, error = "Oturum açılmadı." };
+
+        var oldPassword = payload.TryGetProperty("oldPassword", out var op) ? op.GetString() ?? "" : "";
+        var newPassword = payload.TryGetProperty("newPassword", out var np) ? np.GetString() ?? "" : "";
+
+        if (string.IsNullOrWhiteSpace(oldPassword) || string.IsNullOrWhiteSpace(newPassword))
+            return new { ok = false, error = "Parola alanları boş olamaz." };
+
+        var verified = _auth.TryLogin(_settings, _currentUser.Username, oldPassword);
+        if (verified is null) return new { ok = false, error = "Eski parola yanlış." };
+
+        _currentUser.Password = newPassword;
+        _settingsStore.Save(_settings);
+
+        return new { ok = true };
     }
 
     private object HandleScanDrives()
