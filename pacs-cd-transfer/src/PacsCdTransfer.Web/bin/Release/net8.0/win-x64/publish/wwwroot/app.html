@@ -1917,7 +1917,7 @@
     var btn = document.getElementById('loginBtn');
     var err = document.getElementById('loginError');
     err.style.display = 'none';
-    if(!hasNative){ showScreen('home'); return; }
+     showScreen('home'); return; }
 
     var username = document.getElementById('loginUser').value.trim();
     var password = document.getElementById('loginPw').value;
@@ -1959,7 +1959,7 @@
     b.addEventListener('click', function(){ showScreen(b.dataset.screen); });
   });
   async function loadDicomSettingsPane(){
-    if(!hasNative) return;
+    
     var res = await nativeCall('getAppSettings');
     if(!res || !res.ok) return;
     var ae = document.getElementById('settingsLocalAe');
@@ -1972,7 +1972,7 @@
     if(maxBatch) maxBatch.value = res.maxBatchSeries;
   }
   async function refreshTopBarInfo(){
-    if(!hasNative) return;
+    
     var res = await nativeCall('getAppSettings');
     var ip = await nativeCall('getLocalIp');
     if(res && res.ok){
@@ -1996,7 +1996,7 @@
   var settingsSaveTimer = null;
   async function saveSettings(){
     var msg = document.getElementById('settingsSavedMsg');
-    if(hasNative){
+    {
       var ae = document.getElementById('settingsLocalAe');
       var port = document.getElementById('settingsLocalPort');
       var storage = document.getElementById('settingsStorageFolder');
@@ -2191,7 +2191,7 @@
     var rows = document.getElementById('queryRows');
     rows.style.opacity = '.35';
 
-    if(hasNative){
+    {
       var srcAe = document.getElementById('querySrcSelect').value;
       var res = await nativeCall('findStudies', {
         aeTitle: srcAe,
@@ -2468,7 +2468,7 @@
     result.textContent = 'Test ediliyor…';
     result.style.color = 'var(--text-lo)';
 
-    if(hasNative){
+    {
       var res = await nativeCall('testConnection', { aeTitle: ae });
       if(res && res.ok){
         result.innerHTML = '<span style="color:var(--ok);">✓ Bağlantı başarılı</span>';
@@ -2490,7 +2490,7 @@
     }, 700);
   }
   async function refreshLogList(){
-    if(!hasNative) return;
+    
     var res = await nativeCall('getLog');
     if(!res || !res.ok) return;
     var list = document.getElementById('logList');
@@ -2509,7 +2509,7 @@
     }).join('');
   }
   async function clearLog(){
-    if(hasNative){
+    {
       await nativeCall('clearLog');
       await refreshLogList();
       return;
@@ -2537,7 +2537,7 @@
     return tr;
   }
   async function refreshUserList(){
-    if(!hasNative) return;
+    
     var res = await nativeCall('getUsers');
     if(!res || !res.ok) return;
     var list = document.getElementById('userList');
@@ -2551,7 +2551,7 @@
     var pass = passInput.value.trim();
     if(!name || !pass) return;
 
-    if(hasNative){
+    {
       var res = await nativeCall('addUser', { username: name, password: pass, canTransferCd: true, canQueryRetrieve: true });
       if(!res || !res.ok){ alert((res && res.error) || 'Kullanıcı eklenemedi.'); return; }
       input.value = '';
@@ -2582,7 +2582,7 @@
   }
   async function removeUserRow(btn){
     var row = btn.closest('tr');
-    if(hasNative){
+    {
       await nativeCall('removeUser', { username: row.dataset.username });
       await refreshUserList();
       return;
@@ -2639,7 +2639,7 @@
     var port = inputs[2].value.trim() || row.dataset.port;
     var originalAe = row.dataset.ae;
 
-    if(hasNative){
+    {
       var isSrc = !!row.closest('#pacsSrcList');
       var action = isSrc ? 'updateSource' : 'updateDestination';
       var res = await nativeCall(action, { originalAeTitle: originalAe, aeTitle: ae, host: host, port: parseInt(port, 10) });
@@ -2678,7 +2678,7 @@
     });
   }
   async function setDefaultPacs(btn){
-    if(hasNative){
+    {
       var row = btn.closest('.dest-row');
       await nativeCall('setDefaultDestination', { aeTitle: row.dataset.ae });
       await loadRealPacsConfig();
@@ -2697,7 +2697,7 @@
     var host = document.getElementById('newPacsHost').value.trim();
     var port = document.getElementById('newPacsPort').value.trim() || '104';
     if(!ae || !host) return;
-    if(hasNative){
+    {
       var res = await nativeCall('addDestination', { aeTitle: ae, host: host, port: parseInt(port, 10) });
       if(!res || !res.ok){ alert((res && res.error) || 'Hedef eklenemedi.'); return; }
       document.getElementById('newPacsAe').value = '';
@@ -2729,7 +2729,7 @@
     var list = document.getElementById('pacsDestList');
     if(list.querySelectorAll('.dest-row').length <= 1) return;
     var row = btn.closest('.dest-row');
-    if(hasNative){
+    {
       await nativeCall('removeDestination', { aeTitle: row.dataset.ae });
       await loadRealPacsConfig();
       return;
@@ -2765,7 +2765,7 @@
     });
   }
   async function setDefaultSrc(btn){
-    if(hasNative){
+    {
       var row = btn.closest('.dest-row');
       await nativeCall('setDefaultSource', { aeTitle: row.dataset.ae });
       await loadRealPacsConfig();
@@ -2784,7 +2784,7 @@
     var host = document.getElementById('newSrcHost').value.trim();
     var port = document.getElementById('newSrcPort').value.trim() || '104';
     if(!ae || !host) return;
-    if(hasNative){
+    {
       var res = await nativeCall('addSource', { aeTitle: ae, host: host, port: parseInt(port, 10), retrieveMode: 'cmove' });
       if(!res || !res.ok){ alert((res && res.error) || 'Kaynak eklenemedi.'); return; }
       document.getElementById('newSrcAe').value = '';
@@ -2817,7 +2817,7 @@
     var list = document.getElementById('pacsSrcList');
     if(list.querySelectorAll('.dest-row').length <= 1) return;
     var row = btn.closest('.dest-row');
-    if(hasNative){
+    {
       await nativeCall('removeSource', { aeTitle: row.dataset.ae });
       await loadRealPacsConfig();
       return;
@@ -3123,7 +3123,7 @@
     loadSourceKind = kind || 'cd';
     var isFolder = loadSourceKind === 'folder';
 
-    if(hasNative){
+    {
       if(isFolder){
         var picked = await nativeCall('pickFolder');
         if(!picked || !picked.ok) return;
@@ -3205,7 +3205,7 @@
   }
 
   async function nativeScanDrives(){
-    if(!hasNative) return;
+    
     var res = await nativeCall('scanDrives');
     var empty = document.getElementById('drivePanelEmpty');
     var found = document.getElementById('drivePanelFound');
@@ -3250,7 +3250,7 @@
   }
 
   async function loadRealPacsConfig(){
-    if(!hasNative) return;
+    
     var destRes = await nativeCall('getDestinations');
     if(destRes && destRes.ok){
       var destList = document.getElementById('pacsDestList');
@@ -3288,7 +3288,7 @@
   }
 
   async function refreshRecentTransfers(){
-    if(!hasNative) return;
+    
     var res = await nativeCall('getRecentTransfers');
     if(!res || !res.ok) return;
 
@@ -3312,7 +3312,7 @@
     }).join('');
   }
 
-  if(hasNative){
+  {
     document.addEventListener('DOMContentLoaded', function(){
       nativeScanDrives();
       loadRealPacsConfig();
