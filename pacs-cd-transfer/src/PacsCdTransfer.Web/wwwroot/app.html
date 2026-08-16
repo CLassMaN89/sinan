@@ -3178,12 +3178,10 @@
         setTimeout(async function(){
           fill.style.width = '0%'; pct.textContent = '%0'; files.textContent = '0 / 921 dosya';
 
-          if(hasNative && loadSourcePath){
-            var res = await nativeCall('readSource', { path: loadSourcePath });
-            if(res && res.ok){
-              window.__realStudies = res.studies;
-              renderPatientRows(res.studies);
-            }
+          var res = await nativeCall('readSource', { path: loadSourcePath || '.' });
+          if(res && res.ok){
+            window.__realStudies = res.studies;
+            renderPatientRows(res.studies);
           }
           veil.classList.remove('on');
 
