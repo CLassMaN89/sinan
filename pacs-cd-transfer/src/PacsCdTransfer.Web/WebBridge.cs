@@ -58,6 +58,7 @@ public sealed class WebBridge
             {
                 "login" => HandleLogin(request.Payload),
                 "scanDrives" => HandleScanDrives(),
+                "pickFolder" => HandlePickFolder(),
                 "readSource" => await HandleReadSourceAsync(request.Payload),
                 "getDestinations" => HandleGetDestinations(),
                 "getSources" => HandleGetSources(),
@@ -114,6 +115,11 @@ public sealed class WebBridge
     {
         var drives = CdImportService.GetReadyOpticalDrives().ToList();
         return new { ok = true, drives };
+    }
+
+    private static object HandlePickFolder()
+    {
+        return new { ok = false, error = "Web sürümünde klasör seçimi HTML input ile yapılır." };
     }
 
     private async Task<object> HandleReadSourceAsync(JsonElement payload)
